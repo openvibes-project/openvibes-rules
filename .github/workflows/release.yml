@@ -28,6 +28,9 @@ jobs:
           version=$(jq -er .rule_set_version baseline/baseline.json)
           test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, envelope v$version"; exit 1; }
 
+      # No --previous-version here: the tag must equal the envelope version
+      # (above), and main's CI already refused an envelope that did not move
+      # past the last release.
       - name: Check the baseline
         run: >-
           cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json

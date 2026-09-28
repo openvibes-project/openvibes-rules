@@ -14,6 +14,10 @@ listening ports bound beyond loopback and 2 on insecure server packages
   step 11 and Repair read exactly these paths: `rules trust add` with the key
   line, then `rules publish` of the envelope; the local agent gets the same key.
 
+**Key pinning.** Once a release exists, CI refuses a change to
+`baseline.key` (the key Setup trusts from the RPM); rotating it needs its own
+design.
+
 **Configuration.** None; operators who want other rules sign their own sets
 with `openvibes-admin rules keygen|sign`.
 
