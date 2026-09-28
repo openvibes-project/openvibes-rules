@@ -219,3 +219,9 @@ fn invalid_case_facts_say_why() {
     assert_eq!(errors.len(), 1, "{errors:?}");
     assert!(errors[0].contains("invalid facts:"), "{errors:?}");
 }
+
+#[test]
+fn key_line_must_name_the_baseline_set() {
+    let err = key_line(&format!("baseline2 openvibes-1 {}", public(7))).unwrap_err();
+    assert!(err.contains("the rule set must be baseline"), "{err}");
+}

@@ -16,7 +16,9 @@ and the `openvibes-rules-baseline` RPM. Read `README.md` first and follow
   the pinned evaluator runs every test case, so it is also the allowlist of
   CEL functions (a rule using a newer function fails its cases). Move the pin
   only when that minimum agent version moves, together with
-  `facts.allowlist`.
+  `facts.allowlist`. A later rule set that needs newer CEL (for example
+  alarms on the subset-v2 functions) gets its own pin and allowlist; do not
+  move the baseline's pin up for it.
 - CI job names `Rule checks` and `RPM (fedora:44)` are required by the
   repository ruleset; renaming them needs the ruleset changed first.
 - `scripts/sign-rpms.sh` and `packaging/openvibes-packages.gpg` are copies from

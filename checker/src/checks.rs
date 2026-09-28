@@ -56,6 +56,12 @@ pub fn key_line(text: &str) -> Result<Key, String> {
     let [set, issuer, public] = fields.as_slice() else {
         return Err("baseline.key: want RULE_SET ISSUER_KEY_ID PUBLIC_KEY".into());
     };
+    // Setup looks for the set named `baseline`; the issuer may rotate.
+    if *set != "baseline" {
+        return Err(format!(
+            "baseline.key: the rule set must be baseline, not {set}"
+        ));
+    }
     let id = |value: &str| Identifier::new(value).map_err(|e| format!("baseline.key: {e}"));
     let public: [u8; 32] = URL_SAFE_NO_PAD
         .decode(public)

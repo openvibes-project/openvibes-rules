@@ -47,7 +47,7 @@ jobs:
         run: |
           # A changed envelope must carry a version above the latest release;
           # an unchanged one may keep it.
-          prev=$(git tag -l 'v*' --sort=-v:refname | head -1 | tr -d v)
+          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 | sed 's/^v//' || true)
           args=()
           if [[ -n $prev ]]; then
             if git diff --quiet "v$prev" -- baseline/baseline.json; then
