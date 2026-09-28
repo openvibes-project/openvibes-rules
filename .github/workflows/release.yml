@@ -1,0 +1,59 @@
+# A tag vN: check the baseline, build the RPM, sign and check it, publish the
+# GitHub Release, then tell the package repository to rebuild.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Install build packages
+        run: dnf -q -y install git cargo rust rpm-build rpm-sign rpmlint gnupg2 gh jq
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: The tag is the envelope version
+        run: |
+          version=$(jq -er .rule_set_version baseline/baseline.json)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, envelope v$version"; exit 1; }
+
+      - name: Check the baseline
+        run: >-
+          cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json
+          --allowlist facts.allowlist
+
+      - name: Build the RPM
+        run: bash scripts/build-rpm.sh dist
+
+      - name: Sign and check
+        env:
+          RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
+          RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
+        run: |
+          bash scripts/sign-rpms.sh dist packaging/openvibes-packages.gpg
+          (cd dist && sha256sum -- *.rpm > SHA256SUMS)
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --title "openvibes-rules $GITHUB_REF_NAME" --generate-notes dist/*
+          gh release edit "$GITHUB_REF_NAME" --draft=false
+
+      - name: Tell the package repository
+        env:
+          GH_TOKEN: ${{ secrets.PAGES_DISPATCH_TOKEN }}
+        run: gh api repos/openvibes-project/openvibes-project.github.io/dispatches -f event_type=release-published
