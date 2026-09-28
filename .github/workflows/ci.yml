@@ -1,0 +1,94 @@
+# Every action is pinned to a full commit SHA with its version in a comment.
+# The job names are required checks in the repository ruleset.
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  checks:
+    name: Rule checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Install pinned toolchain from rust-toolchain.toml
+        run: rustup toolchain install
+
+      - name: Cache Cargo dependencies
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Format, clippy, tests
+        run: |
+          cargo fmt --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+
+      - name: The signing key is the released one
+        run: |
+          # Setup trusts the key the RPM ships, so a PR must not swap it (with
+          # an envelope signed by the new key, rules-check alone stays green).
+          # Key rotation is out of scope: it needs its own design first.
+          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 || true)
+          if [[ -n $prev ]] && ! git diff --quiet "$prev" -- baseline/baseline.key; then
+            echo "baseline/baseline.key differs from $prev"; exit 1
+          fi
+
+      - name: Check the baseline
+        run: |
+          # A changed envelope must carry a version above the latest release;
+          # an unchanged one may keep it.
+          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 | sed 's/^v//' || true)
+          args=()
+          if [[ -n $prev ]]; then
+            if git diff --quiet "v$prev" -- baseline/baseline.json; then
+              args=(--previous-version "$((prev - 1))")
+            else
+              args=(--previous-version "$prev")
+            fi
+          fi
+          cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
+            --allowlist facts.allowlist "${args[@]}"
+
+  rpm:
+    name: RPM (fedora:44)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: registry.fedoraproject.org/fedora:44
+    steps:
+      - name: Install build packages
+        run: dnf -q -y install rpm-build rpmlint jq
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and check the RPM
+        run: bash scripts/build-rpm.sh dist
+
+      - name: Upload the RPM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rules-rpms
+          path: dist/*.rpm
+          if-no-files-found: error
