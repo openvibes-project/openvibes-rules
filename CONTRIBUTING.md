@@ -17,6 +17,10 @@ By submitting a contribution, you agree that it is licensed under the project's
 - Every rule needs at least one `match` and one `no_match` case in
   `tests/cases.json`. List facts are sorted and unique, as agents send them.
 - Pull requests change `rules.json`; the maintainer signs `baseline.json`.
+- A pull request that touches `baseline/baseline.key` or `.github/` gets a
+  deliberate look from the maintainer: CI refuses a changed key after the
+  first release, but a pull request runs its own workflow files, so that
+  check is a guard against mistakes, not against a hostile change.
 
 ## AI-Assisted Contributions
 

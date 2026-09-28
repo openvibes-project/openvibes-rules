@@ -19,6 +19,9 @@ and the `openvibes-rules-baseline` RPM. Read `README.md` first and follow
   `facts.allowlist`. A later rule set that needs newer CEL (for example
   alarms on the subset-v2 functions) gets its own pin and allowlist; do not
   move the baseline's pin up for it.
+- CI refuses a changed `baseline.key` once a release exists; a pull request
+  runs its own workflow files, so changes to `baseline.key` or `.github/`
+  still need a deliberate human review. Never change either unasked.
 - CI job names `Rule checks` and `RPM (fedora:44)` are required by the
   repository ruleset; renaming them needs the ruleset changed first.
 - `scripts/sign-rpms.sh` and `packaging/openvibes-packages.gpg` are copies from
