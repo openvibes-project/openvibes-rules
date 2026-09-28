@@ -48,7 +48,7 @@ jobs:
           # Setup trusts the key the RPM ships, so a PR must not swap it (with
           # an envelope signed by the new key, rules-check alone stays green).
           # Key rotation is out of scope: it needs its own design first.
-          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 || true)
+          prev=$(git tag --merged origin/main -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 || true)
           if [[ -n $prev ]] && ! git diff --quiet "$prev" -- baseline/baseline.key; then
             echo "baseline/baseline.key differs from $prev"; exit 1
           fi
@@ -57,7 +57,7 @@ jobs:
         run: |
           # A changed envelope must carry a version above the latest release;
           # an unchanged one may keep it.
-          prev=$(git tag -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 | sed 's/^v//' || true)
+          prev=$(git tag --merged origin/main -l 'v*' | grep -E '^v[0-9]+$' | sort -V | tail -1 | sed 's/^v//' || true)
           args=()
           if [[ -n $prev ]]; then
             if git diff --quiet "v$prev" -- baseline/baseline.json; then
