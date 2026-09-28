@@ -1,0 +1,12 @@
+process.names
+process.count
+package.names
+package.count
+port.tcp.exposed
+port.tcp.local
+port.tcp.listeners
+port.tcp.exposed.count
+port.udp.exposed
+port.udp.local
+port.udp.listeners
+port.udp.exposed.count
