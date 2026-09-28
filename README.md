@@ -1,2 +1,49 @@
 # openvibes-rules
-Signed baseline rule sets for OpenVIBES agents
+
+Signed baseline rule sets for OpenVIBES agents.
+
+The baseline is a small, quiet set of rules that flags risky exposure on a
+Linux host: services listening beyond loopback that are usually meant to stay
+local (Docker API, Redis, databases, telnet, …) and a few insecure server
+packages. A fresh OpenVIBES platform installs it as the RPM
+`openvibes-rules-baseline`; Setup trusts its key and publishes it, and every
+enrolled agent evaluates it.
+
+| Path | What |
+|---|---|
+| `baseline/rules.json` | the rule set (schema 1), one rule per line |
+| `baseline/baseline.json` | the signed envelope over the exact bytes of `rules.json` |
+| `baseline/baseline.key` | `baseline openvibes-1 PUBLIC_KEY`, the trust line |
+| `tests/cases.json` | facts and the expected outcome per rule |
+| `facts.allowlist` | facts the oldest supported agent collects |
+| `checker/` | `rules-check`, run by CI on every change |
+| `openvibes-rules-baseline.spec` | the noarch RPM |
+
+The rules are signed offline by the maintainer with `openvibes-admin rules
+sign`; CI never holds the signing key. Design: openvibes-platform
+`docs/specs/2026-09-28-baseline-rules-design.md`. Components:
+[`docs/components/`](docs/components/README.md).
+
+## Checking locally
+
+```sh
+cargo test --locked
+cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
+    --allowlist facts.allowlist            # add --sources-only before signing
+```
+
+## Releasing (maintainer)
+
+1. Change `baseline/rules.json` and `tests/cases.json`; `--sources-only` passes.
+2. Sign with the next version (the private key stays offline):
+   `openvibes-admin rules sign KEY baseline/rules.json --rule-set baseline
+   --version N --issuer openvibes-1 -o baseline/baseline.json`
+   (remove the old `baseline.json` first).
+3. Open a pull request; CI must be green; merge.
+4. Tag `vN` on the merge commit. The release workflow builds, signs and
+   publishes the RPM and tells the package repository to rebuild.
+
+Re-sign (a new version, same rules) before the envelope has less than a
+year left; CI refuses an envelope with less than 365 days.
+
+MIT licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).

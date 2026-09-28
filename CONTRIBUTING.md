@@ -1,0 +1,36 @@
+# Contributing
+
+By submitting a contribution, you agree that it is licensed under the project's
+[MIT License](LICENSE).
+
+## Rules
+
+- One rule per finding a person can act on; quiet by default. A rule that
+  fires on most healthy hosts does not belong in the baseline.
+- Ids: `port.<service>.exposed` or `package.<name>.installed`.
+- `finding_message` names what was seen (port and protocol) and the usual fix.
+  Port rules say "listens on a non-loopback address": the agent sees the bind
+  address, not whether a firewall blocks it.
+- Read facts only as `facts['KEY']`, and only facts in `facts.allowlist`. A new
+  fact needs an agent release first, and the allowlist follows the oldest
+  agent the project still supports.
+- Every rule needs at least one `match` and one `no_match` case in
+  `tests/cases.json`. List facts are sorted and unique, as agents send them.
+- Pull requests change `rules.json`; the maintainer signs `baseline.json`.
+
+## AI-Assisted Contributions
+
+AI coding tools may be used to prepare contributions, under these conditions:
+
+1. **Disclose it.** A commit containing substantial AI-generated code or text
+   carries a trailer naming the tool, for example
+   `Co-Authored-By: Claude <noreply@anthropic.com>`. Alternatively, state in the
+   pull request which parts were AI-assisted and with which tool.
+2. **The human submitter is responsible.** You must understand, review, and test
+   every line you submit. "The tool wrote it" is not a justification in review,
+   and AI-assisted changes meet the same review bar as any other change.
+3. **Never share secrets with AI tools.** Do not paste credentials or private
+   keys into prompts; the rule-signing key never leaves the maintainer's
+   offline storage.
+
+Repository guidance for coding agents lives in [`AGENTS.md`](AGENTS.md).
