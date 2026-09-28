@@ -28,6 +28,10 @@ failure and exits 1 (2 for bad arguments). Checks:
 passes `--previous-version` from the latest `v*` tag: the tag's number when
 `baseline.json` changed since that tag, one less when it did not.
 
+The pin (`checker/Cargo.toml`) is the oldest supported agent, so check 5 also
+refuses CEL functions that agent does not know (for example the subset-v2
+string functions), without a separate list.
+
 **Failure behaviour.** All failures are collected and printed before exiting.
 
 **How to test.** `cargo test --locked` (unit tests with fixed keys and times).

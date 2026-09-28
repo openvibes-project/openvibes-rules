@@ -12,7 +12,11 @@ and the `openvibes-rules-baseline` RPM. Read `README.md` first and follow
   (`--sources-only` until the maintainer has signed). For RPM changes also
   `bash scripts/build-rpm.sh dist` in `registry.fedoraproject.org/fedora:44`.
 - `checker/` pins the agent's `openvibes-core` and `openvibes-rules` at the
-  same revision as openvibes-platform; move both pins together.
+  **oldest agent release the project still supports**, not at the newest:
+  the pinned evaluator runs every test case, so it is also the allowlist of
+  CEL functions (a rule using a newer function fails its cases). Move the pin
+  only when that minimum agent version moves, together with
+  `facts.allowlist`.
 - CI job names `Rule checks` and `RPM (fedora:44)` are required by the
   repository ruleset; renaming them needs the ruleset changed first.
 - `scripts/sign-rpms.sh` and `packaging/openvibes-packages.gpg` are copies from
