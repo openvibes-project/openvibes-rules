@@ -35,10 +35,18 @@ cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
 ## Releasing (maintainer)
 
 1. Change `baseline/rules.json` and `tests/cases.json`; `--sources-only` passes.
-2. Sign with the next version (the private key stays offline):
-   `openvibes-admin rules sign KEY baseline/rules.json --rule-set baseline
-   --version N --issuer openvibes-1 -o baseline/baseline.json`
-   (remove the old `baseline.json` first).
+2. Sign with the next version (the private key stays offline). `rules sign`
+   refuses a key file others can read, and FAT/exFAT sticks show every file
+   as 0644, so sign from a private copy in memory and remove it after:
+
+   ```sh
+   K="$XDG_RUNTIME_DIR/openvibes-rules.key"   # tmpfs, only you can read it
+   install -m 0600 /run/media/$USER/STICK/openvibes/openvibes-rules.key "$K"
+   rm -f baseline/baseline.json
+   openvibes-admin rules sign "$K" baseline/rules.json --rule-set baseline \
+       --version N --issuer openvibes-1 -o baseline/baseline.json
+   rm -f "$K"
+   ```
 3. Open a pull request; CI must be green; merge.
 4. Tag `vN` on the merge commit. The release workflow builds, signs and
    publishes the RPM and tells the package repository to rebuild.
