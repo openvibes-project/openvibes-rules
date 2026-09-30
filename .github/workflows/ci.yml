@@ -22,7 +22,7 @@ env:
 jobs:
   checks:
     name: Rule checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout repository
@@ -71,7 +71,7 @@ jobs:
 
   rpm:
     name: RPM (fedora:44)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: registry.fedoraproject.org/fedora:44
     steps:
