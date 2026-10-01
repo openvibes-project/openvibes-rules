@@ -58,4 +58,9 @@ cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
 Re-sign (a new version, same rules) before the envelope has less than a
 year left; CI refuses an envelope with less than 365 days.
 
+The RPM version (and the release tag) is the baseline's `rule_set_version`.
+The alarm rules (`alarms/`, rule set `baseline-alarms`) ship in the same
+package, so an alarm-only change also re-signs the baseline at the next
+version (same rules) to give the package a new version.
+
 MIT licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).

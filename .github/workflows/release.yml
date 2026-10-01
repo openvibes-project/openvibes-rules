@@ -40,6 +40,12 @@ jobs:
               { echo "$GITHUB_REF_NAME is not above the last release $prev"; exit 1; }
             git diff --quiet "$prev" "$GITHUB_SHA" -- baseline/baseline.key ||
               { echo "baseline/baseline.key differs from $prev"; exit 1; }
+            # The alarm key ships in the same RPM (since v2); guard it once
+            # the previous release had it.
+            if git cat-file -e "$prev:alarms/alarms.key" 2>/dev/null; then
+              git diff --quiet "$prev" "$GITHUB_SHA" -- alarms/alarms.key ||
+                { echo "alarms/alarms.key differs from $prev"; exit 1; }
+            fi
           fi
 
       - name: The tag is the envelope version
