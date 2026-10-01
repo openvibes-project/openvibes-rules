@@ -69,6 +69,14 @@ jobs:
           cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
             --allowlist facts.allowlist "${args[@]}"
 
+      - name: Check the alarm rules
+        run: |
+          # Signed by the maintainer; until alarms/alarms.json exists only
+          # the sources are checked (the RPM does not ship them before).
+          args=(--sources-only)
+          [[ -f alarms/alarms.json ]] && args=()
+          cargo run --locked -p alarms-check -- --dir alarms --cases tests/alarm-cases.json "${args[@]}"
+
   rpm:
     name: RPM (fedora:44)
     runs-on: ubuntu-24.04
