@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds openvibes-rules-baseline (noarch) from baseline/ into OUT_DIR and
-# checks it: rpmlint without errors, exactly the two files and two
-# directories. The version is the signed envelope's rule set version.
+# checks it: rpmlint without errors, exactly the four files (baseline and
+# alarm rule sets, with their keys) and two directories. The version is the signed envelope's rule set version.
 # Usage: build-rpm.sh OUT_DIR   (Fedora: rpm-build rpmlint jq)
 set -euo pipefail
 [[ $# == 1 ]] || { echo "usage: $0 OUT_DIR" >&2; exit 2; }
@@ -12,6 +12,7 @@ rm -rf "$root/target/rpm"
 rpmbuild -bb --quiet \
     --define "_topdir $root/target/rpm" \
     --define "_sourcedir $root/baseline" \
+    --define "alarms_dir $root/alarms" \
     --define "rule_version $version" \
     "$root/openvibes-rules-baseline.spec"
 mkdir -p "$out"
@@ -20,6 +21,8 @@ cp "$rpm" "$out/"
 rpmlint "$rpm"
 want='/usr/share/openvibes
 /usr/share/openvibes/rules
+/usr/share/openvibes/rules/alarms.json
+/usr/share/openvibes/rules/alarms.key
 /usr/share/openvibes/rules/baseline.json
 /usr/share/openvibes/rules/baseline.key'
 got=$(rpm -qlp "$rpm")
