@@ -55,6 +55,10 @@ jobs:
           cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json
           --allowlist facts.allowlist
 
+      - name: Check the alarm rules (the signed envelope too)
+        run: >-
+          cargo run --locked -p alarms-check -- --dir alarms --cases tests/alarm-cases.json
+
       - name: Build the RPM
         run: bash scripts/build-rpm.sh dist
 
@@ -79,8 +83,3 @@ jobs:
               --title "openvibes-rules $GITHUB_REF_NAME" --generate-notes dist/*
             gh release edit "$GITHUB_REF_NAME" --draft=false
           fi
-
-      - name: Tell the package repository
-        env:
-          GH_TOKEN: ${{ secrets.PAGES_DISPATCH_TOKEN }}
-        run: gh api repos/openvibes-project/openvibes-project.github.io/dispatches -f event_type=release-published
