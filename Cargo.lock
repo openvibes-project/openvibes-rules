@@ -3,6 +3,19 @@
 version = 4
 
 [[package]]
+name = "alarms-check"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "ed25519-dalek",
+ "openvibes-core 0.1.3",
+ "openvibes-rules 0.1.3",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "annotate-snippets"
 version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -378,6 +391,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "openvibes-core"
+version = "0.1.3"
+source = "git+https://github.com/openvibes-project/openvibes-agent.git?rev=8648be7281ddffc0d34b992b2c23d9901e33dca2#8648be7281ddffc0d34b992b2c23d9901e33dca2"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "openvibes-rules"
 version = "0.1.0"
 source = "git+https://github.com/openvibes-project/openvibes-agent.git?rev=40f99114bbf1c61a24be3c00c8b782609b757b2a#40f99114bbf1c61a24be3c00c8b782609b757b2a"
@@ -385,7 +408,22 @@ dependencies = [
  "base64",
  "cel",
  "ed25519-dalek",
- "openvibes-core",
+ "openvibes-core 0.1.0",
+ "serde",
+ "serde-saphyr",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "openvibes-rules"
+version = "0.1.3"
+source = "git+https://github.com/openvibes-project/openvibes-agent.git?rev=8648be7281ddffc0d34b992b2c23d9901e33dca2#8648be7281ddffc0d34b992b2c23d9901e33dca2"
+dependencies = [
+ "base64",
+ "cel",
+ "ed25519-dalek",
+ "openvibes-core 0.1.3",
  "serde",
  "serde-saphyr",
  "serde_json",
@@ -460,8 +498,8 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "ed25519-dalek",
- "openvibes-core",
- "openvibes-rules",
+ "openvibes-core 0.1.0",
+ "openvibes-rules 0.1.0",
  "serde",
  "serde_json",
  "sha2",

@@ -17,6 +17,10 @@ enrolled agent evaluates it.
 | `tests/cases.json` | facts and the expected outcome per rule |
 | `facts.allowlist` | facts the oldest supported agent collects |
 | `checker/` | `rules-check`, run by CI on every change |
+| `alarms/rules.json` | the baseline alarm rules (`process_event`, rule set `baseline-alarms`) |
+| `alarms/alarms.key` | the alarm rules' trust line (same key, scoped to `baseline-alarms`) |
+| `tests/alarm-cases.json` | events and the expected outcome per alarm rule |
+| `alarms-checker/` | `alarms-check`, run by CI on every change |
 | `openvibes-rules-baseline.spec` | the noarch RPM |
 
 The rules are signed offline by the maintainer with `openvibes-admin rules

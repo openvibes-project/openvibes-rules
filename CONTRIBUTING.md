@@ -22,6 +22,20 @@ By submitting a contribution, you agree that it is licensed under the project's
   first release, but a pull request runs its own workflow files, so that
   check is a guard against mistakes, not against a hostile change.
 
+## Alarm rules (`alarms/`)
+
+- Quiet over complete: a false alarm costs more than a missed one. A rule
+  must not fire on a healthy web, database or build host.
+- Ids: `alarm.<what>.<how>`. `kind` is always `process_event`. Use
+  `programs` whenever the rule only concerns some programs.
+- Match parents by `parent.name`, not `parent.exe`: a parent the agent read
+  from `/proc` may have no readable exe. Allow for `dash` wherever a rule
+  means `sh`.
+- CEL subset v2 only: no list literals (write `a == 'x' || a == 'y'`).
+  `alarms-check` refuses anything the agent would.
+- Every rule needs `match` and `no_match` cases in `tests/alarm-cases.json`,
+  including the near misses it is designed to ignore.
+
 ## AI-Assisted Contributions
 
 AI coding tools may be used to prepare contributions, under these conditions:
