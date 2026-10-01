@@ -7,9 +7,6 @@ URL:            https://github.com/openvibes-project/openvibes-rules
 BuildArch:      noarch
 Source0:        baseline.json
 Source1:        baseline.key
-# The threat-alarm rule set (P14), from alarms/ (build-rpm.sh defines it).
-Source2:        %{alarms_dir}/alarms.json
-Source3:        %{alarms_dir}/alarms.key
 
 %description
 The OpenVIBES project's signed baseline rule set, the threat-alarm rule
@@ -23,8 +20,9 @@ openvibes-admin Setup trusts the keys and publishes the rule sets.
 %install
 install -D -m 0644 %{SOURCE0} %{buildroot}%{_datadir}/openvibes/rules/baseline.json
 install -D -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/openvibes/rules/baseline.key
-install -D -m 0644 %{SOURCE2} %{buildroot}%{_datadir}/openvibes/rules/alarms.json
-install -D -m 0644 %{SOURCE3} %{buildroot}%{_datadir}/openvibes/rules/alarms.key
+# The threat-alarm rule set (P14) lives in alarms/ (build-rpm.sh passes it).
+install -D -m 0644 %{alarms_dir}/alarms.json %{buildroot}%{_datadir}/openvibes/rules/alarms.json
+install -D -m 0644 %{alarms_dir}/alarms.key %{buildroot}%{_datadir}/openvibes/rules/alarms.key
 
 %files
 %dir %{_datadir}/openvibes
