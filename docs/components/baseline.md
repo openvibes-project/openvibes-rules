@@ -1,8 +1,11 @@
 # Baseline rule set and `openvibes-rules-baseline`
 
-**Purpose.** Quiet default findings for a fresh platform: 16 rules, 14 on
-listening ports bound beyond loopback and 2 on insecure server packages
-(openvibes-platform spec `2026-09-28-baseline-rules-design.md` §5).
+**Purpose.** Quiet default findings for a fresh platform: 41 rules, 35 on
+listening ports bound beyond loopback and 6 on insecure server packages
+(openvibes-platform spec `2026-09-28-baseline-rules-design.md` §5, widened
+in version 2 to more applications). Package rules match both Fedora/RHEL and
+Debian/Ubuntu package names. The set is Linux-only; other operating systems
+get their own rule sets, so an agent loads only its own OS's rules.
 
 **Interfaces.**
 - `baseline/rules.json`: schema-1 rule set, id `baseline`.
