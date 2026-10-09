@@ -23,8 +23,13 @@ failure and exits 1 (2 for bad arguments). Checks:
 5. Every case evaluates to its expected outcome in the agent's evaluator (the
    rules signed in memory with a throwaway key), every rule has a `match` and a
    `no_match` case, and case facts are valid agent facts (lists sorted, unique).
+6. ATT&CK: every rule except the test triggers (`test.openvibes.running`,
+   `alarm.openvibes.test`) carries 1 to 16 distinct, well-formed ATT&CK
+   pairs in `attack` (protocol P18; `checker/src/attack.rs`, shared by both
+   checkers). The pinned agent ignores the field, so this is the only check
+   on it.
 
-`--sources-only` runs 1, 4 and 5, for work before the maintainer signs. CI
+`--sources-only` runs 1, 4, 5 and 6, for work before the maintainer signs. CI
 passes `--previous-version` from the latest `v*` tag: the tag's number when
 `baseline.json` changed since that tag, one less when it did not.
 

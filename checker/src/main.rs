@@ -10,6 +10,7 @@
 //! progress before the signer has signed. Prints `ok: …` or one `error: …`
 //! line per failure and exits 1.
 
+mod attack;
 mod checks;
 
 use std::{
@@ -86,6 +87,7 @@ fn check(args: &Args, now_ms: i64) -> Result<String, Vec<String>> {
             Err(error) => errors.push(format!("{}: {error}", rule.id.as_str())),
         }
     }
+    errors.extend(attack::check(&rules_bytes));
     errors.extend(checks::run_cases(&rules_bytes, &cases, now_ms));
     let mut summary = format!("ok: {} rules, {} cases", rules.rules.len(), cases.len());
 

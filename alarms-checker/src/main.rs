@@ -13,6 +13,9 @@
 //! `--sources-only` the signed envelope `alarms.json` must verify against
 //! `alarms.key`, carry exactly `rules.json`, and have `--min-days` left.
 
+#[path = "../../checker/src/attack.rs"]
+mod attack;
+
 use std::{
     collections::BTreeMap,
     fs,
@@ -155,6 +158,7 @@ fn check(dir: &Path, cases_path: &Path, now_ms: i64) -> (Vec<String>, Vec<String
         Err(e) => return (vec![format!("{}: {e}", cases_path.display())], notes),
     };
 
+    errors.extend(attack::check(&rules_bytes));
     for rule in &rules.rules {
         let name = rule.id.as_str();
         if rule.kind != RuleKind::ProcessEvent {
@@ -344,7 +348,7 @@ mod tests {
         (dir.clone(), dir.join("cases.json"))
     }
 
-    const RULE: &str = r#"{"schema_version":1,"rules":[{"id":"r","version":1,"title":"t","severity":"high","confidence":80,"kind":"process_event","expression":"event['parent.name'] == 'nginx'","finding_message":"m"}]}"#;
+    const RULE: &str = r#"{"schema_version":1,"rules":[{"id":"r","version":1,"title":"t","severity":"high","confidence":80,"kind":"process_event","expression":"event['parent.name'] == 'nginx'","finding_message":"m","attack":[{"tactic":"TA0002"}]}]}"#;
 
     #[test]
     fn the_shipped_rules_pass() {

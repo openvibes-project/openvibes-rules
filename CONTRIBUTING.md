@@ -7,7 +7,12 @@ By submitting a contribution, you agree that it is licensed under the project's
 
 - One rule per finding a person can act on; quiet by default. A rule that
   fires on most healthy hosts does not belong in the baseline.
-- Ids: `port.<service>.exposed` or `package.<name>.installed`.
+- Ids: `port.<service>.exposed` or `package.<name>.installed`
+  (`test.openvibes.running` is the one test trigger).
+- Every rule carries `attack`: its MITRE ATT&CK pairs, primary first, e.g.
+  `[{"tactic":"TA0001","technique":"T1190"}]`. Only the test triggers have
+  none. Changing a mapping does not change what a rule matches, so it keeps
+  its `version`.
 - `finding_message` names what was seen (port and protocol) and the usual fix.
   Port rules say "listens on a non-loopback address": the agent sees the bind
   address, not whether a firewall blocks it.
@@ -26,7 +31,8 @@ By submitting a contribution, you agree that it is licensed under the project's
 
 - Quiet over complete: a false alarm costs more than a missed one. A rule
   must not fire on a healthy web, database or build host.
-- Ids: `alarm.<what>.<how>`. `kind` is always `process_event`. Use
+- Ids: `alarm.<what>.<how>`. Map every rule to ATT&CK in `attack`, as for
+  the baseline (`alarm.openvibes.test` is the exception). `kind` is always `process_event`. Use
   `programs` whenever the rule only concerns some programs.
 - Match parents by `parent.name`, not `parent.exe`: a parent the agent read
   from `/proc` may have no readable exe. Allow for `dash` wherever a rule

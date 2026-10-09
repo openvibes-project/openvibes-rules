@@ -93,5 +93,7 @@
 {"rule":"package.talk_server.installed","name":"inetutils-talkd installed","facts":{"package.names":["bash","inetutils-talkd"]},"expect":"match"},
 {"rule":"package.talk_server.installed","name":"talk-server installed","facts":{"package.names":["bash","talk-server"]},"expect":"match"},
 {"rule":"package.talk_server.installed","name":"talkd installed","facts":{"package.names":["bash","talkd"]},"expect":"match"},
-{"rule":"package.talk_server.installed","name":"inetutils-talkd absent","facts":{"package.names":["bash"]},"expect":"no_match"}
+{"rule":"package.talk_server.installed","name":"inetutils-talkd absent","facts":{"package.names":["bash"]},"expect":"no_match"},
+{"rule":"test.openvibes.running","name":"openvibes-test running","facts":{"process.names":["bash","openvibes-test"]},"expect":"match"},
+{"rule":"test.openvibes.running","name":"a longer name is not the test","facts":{"process.names":["bash","openvibes-tester"]},"expect":"no_match"}
 ]
