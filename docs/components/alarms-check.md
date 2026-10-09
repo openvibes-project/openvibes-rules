@@ -23,7 +23,12 @@ Checks, each reported as one `error:` line (exit 1):
    (the `programs` prefilter included) on `rules.json` signed in memory
    with a throwaway key. The outcome must be the expected `match`,
    `no_match` or `unavailable`.
-4. Without `--sources-only`: `alarms.json` verifies against `alarms.key`,
+4. ATT&CK: every rule except the test triggers (`test.openvibes.running`,
+   `alarm.openvibes.test`) carries 1 to 16 distinct, well-formed ATT&CK
+   pairs in `attack` (protocol P18; `checker/src/attack.rs`, shared by both
+   checkers). The pinned agent ignores the field, so this is the only check
+   on it.
+5. Without `--sources-only`: `alarms.json` verifies against `alarms.key`,
    carries exactly `rules.json`, has `--min-days` left, and is above
    `--previous-version`.
 

@@ -14,6 +14,10 @@ that healthy hosts almost never make:
 | `alarm.exec.dev_shm` | a program runs from `/dev/shm/` |
 | `alarm.shell.dev_tcp` | a shell command line uses `/dev/tcp/` or `/dev/udp/` (reverse shell) |
 | `alarm.netcat.exec` | netcat runs with `-e`, `--exec` or `--sh-exec` |
+| `alarm.openvibes.test` | the harmless `openvibes-test alarm` runs (severity info; a pipeline test, see platform spec `2026-10-09-test-triggers-design.md`) |
+
+Every rule but the test carries its MITRE ATT&CK tactic/technique pairs in
+`attack` (protocol P18).
 
 ## Interfaces
 
