@@ -4,10 +4,18 @@ Signed baseline rule sets for OpenVIBES agents.
 
 The baseline is a small, quiet set of rules that flags risky exposure on a
 Linux host: services listening beyond loopback that are usually meant to stay
-local (Docker API, Redis, databases, telnet, …) and a few insecure server
-packages. A fresh OpenVIBES platform installs it as the RPM
-`openvibes-rules-baseline`; Setup trusts its key and publishes it, and every
-enrolled agent evaluates it.
+local (Docker API, Redis, databases, kubelet, etcd, Ollama, Kafka, RDP, WinRM,
+NFS, X11, telnet, …) and insecure server packages (NIS, TFTP, xinetd, talk,
+telnet and rsh servers), matched by both Fedora/RHEL and Debian/Ubuntu package
+names. The alarm rules raise threat alarms from process starts. Every rule
+except the two test rules carries its MITRE ATT&CK techniques (`attack`); the
+two info-level test rules fire on `openvibes-test` (agent 0.2.6), so a host
+can be checked end to end.
+
+A fresh OpenVIBES platform installs it as the RPM `openvibes-rules-baseline`;
+Setup trusts its key and publishes it, a newer package publishes itself on
+upgrade (platform 0.2.6), and every enrolled agent evaluates it. Version 3:
+baseline v3 (42 rules), alarms v2 (6 rules).
 
 | Path | What |
 |---|---|
