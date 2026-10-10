@@ -79,15 +79,21 @@ pass "a wrong passphrase stops before signing and leaves no key"
 
 # 1b. At a terminal gpg must ask for the passphrase itself: --batch there
 # refused ("can't get input") before any passphrase was typed (2026-10-10).
-python3 "$repo/tests/at-terminal.py" '[y/N]' y 'assphrase' wrong -- \
+# Three tries (user: a long passphrase is easy to mistype once), then stop.
+python3 "$repo/tests/at-terminal.py" '[y/N]' y 'Enter passphrase:' wrong 'Enter passphrase:' wrong 'Enter passphrase:' wrong -- \
   bash "$repo/scripts/release.sh" > "$work/out1b" 2>&1 || true
 grep -q 'could not decrypt' "$work/out1b" || { cat "$work/out1b"; fail "no decrypt error at a terminal"; }
 if grep -q "batchmode" "$work/out1b"; then cat "$work/out1b"; fail "gpg did not ask for the passphrase at a terminal"; fi
+[[ $(grep -c 'try again' "$work/out1b") == 2 ]] || { cat "$work/out1b"; fail "not three tries at a terminal"; }
 run_dir_empty || fail "a key was left in XDG_RUNTIME_DIR after a terminal failure"
-pass "at a terminal gpg asks for the passphrase"
+[[ -z $(git status --porcelain) ]] || fail "three wrong passphrases changed files"
+pass "at a terminal gpg asks for the passphrase, three times"
 
 # 2. Signed, pull request opened, the merge fails (CI red): stops there.
-if printf 'y\nright\n' | FAKE_GH_MERGE_FAIL=1 bash "$repo/scripts/release.sh" > "$work/out2" 2>&1; then fail "a failed merge released"; fi
+# At a terminal, one mistyped passphrase and then the right one: signs.
+if FAKE_GH_MERGE_FAIL=1 python3 "$repo/tests/at-terminal.py" '[y/N]' y 'Enter passphrase:' wrong 'Enter passphrase:' right -- \
+  bash "$repo/scripts/release.sh" > "$work/out2" 2>&1; then fail "a failed merge released"; fi
+grep -q 'try again' "$work/out2" || { cat "$work/out2"; fail "a mistyped passphrase was not retried"; }
 grep -q "Opened pull request" "$work/out2" || { cat "$work/out2"; fail "no pull request"; }
 run_dir_empty || fail "the key was left in XDG_RUNTIME_DIR after signing"
 for f in baseline/baseline.json alarms/alarms.json; do
