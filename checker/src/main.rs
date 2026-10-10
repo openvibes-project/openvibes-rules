@@ -4,7 +4,11 @@
 //! ```text
 //! rules-check --dir baseline --cases tests/cases.json --allowlist facts.allowlist
 //!             [--previous-version N] [--min-days 365] [--sources-only]
+//!             [--set baseline]
 //! ```
+//!
+//! The same source builds `hardening-check` (`hardening-checker/`, another
+//! agent pin) for the hardening sets; `--set` names their signed file.
 //!
 //! `--sources-only` skips the signed envelope (checks 2 and 3), for work in
 //! progress before the signer has signed. Prints `ok: …` or one `error: …`
@@ -29,11 +33,14 @@ struct Args {
     previous_version: Option<u64>,
     min_days: i64,
     sources_only: bool,
+    /// The signed file's name: `<set>.json` and `<set>.key` in `--dir`.
+    set: String,
 }
 
 fn args() -> Result<Args, String> {
     let (mut dir, mut cases, mut allowlist) = (None, None, None);
     let (mut previous_version, mut min_days, mut sources_only) = (None, 365, false);
+    let mut set = "baseline".to_owned();
     let mut it = std::env::args().skip(1);
     while let Some(flag) = it.next() {
         let mut value = || it.next().ok_or(format!("{flag} needs a value"));
@@ -46,6 +53,7 @@ fn args() -> Result<Args, String> {
             }
             "--min-days" => min_days = value()?.parse().map_err(|_| "--min-days N")?,
             "--sources-only" => sources_only = true,
+            "--set" => set = value()?,
             _ => return Err(format!("unknown argument {flag}")),
         }
     }
@@ -56,6 +64,7 @@ fn args() -> Result<Args, String> {
         previous_version,
         min_days,
         sources_only,
+        set,
     })
 }
 
@@ -92,8 +101,8 @@ fn check(args: &Args, now_ms: i64) -> Result<String, Vec<String>> {
     let mut summary = format!("ok: {} rules, {} cases", rules.rules.len(), cases.len());
 
     if !args.sources_only {
-        let signed = read(&args.dir.join("baseline.json"));
-        let key = read(&args.dir.join("baseline.key"))
+        let signed = read(&args.dir.join(format!("{}.json", args.set)));
+        let key = read(&args.dir.join(format!("{}.key", args.set)))
             .and_then(|bytes| checks::key_line(&String::from_utf8_lossy(&bytes)));
         match (signed, key) {
             (Ok(signed), Ok(key)) => match checks::envelope(&signed, &key, &rules_bytes, now_ms) {
@@ -102,15 +111,15 @@ fn check(args: &Args, now_ms: i64) -> Result<String, Vec<String>> {
                         && envelope.rule_set_version <= previous
                     {
                         errors.push(format!(
-                            "baseline.json: version {} is not above the released {previous}",
-                            envelope.rule_set_version
+                            "{}.json: version {} is not above the released {previous}",
+                            args.set, envelope.rule_set_version
                         ));
                     }
                     let left_days = (envelope.expires_at_unix_ms - now_ms) / DAY_MS;
                     if left_days < args.min_days {
                         errors.push(format!(
-                            "baseline.json: expires in {left_days} days, fewer than {} (re-sign)",
-                            args.min_days
+                            "{}.json: expires in {left_days} days, fewer than {} (re-sign)",
+                            args.set, args.min_days
                         ));
                     }
                     summary.push_str(&format!(

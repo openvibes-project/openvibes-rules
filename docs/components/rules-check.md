@@ -10,6 +10,7 @@ accept.
 ```text
 rules-check --dir baseline --cases tests/cases.json --allowlist facts.allowlist
             [--previous-version N] [--min-days 365] [--sources-only]
+            [--set baseline]
 ```
 
 Prints `ok: R rules, C cases, vN expires in D days`, or one `error: …` line per
@@ -36,6 +37,10 @@ passes `--previous-version` from the latest `v*` tag: the tag's number when
 The pin (`checker/Cargo.toml`) is the oldest supported agent, so check 5 also
 refuses CEL functions that agent does not know (for example the subset-v2
 string functions), without a separate list.
+
+`--set NAME` names the signed envelope and trust line (`NAME.json`,
+`NAME.key`; default `baseline`). The same source builds
+[`hardening-check`](hardening-check.md).
 
 **Failure behaviour.** All failures are collected and printed before exiting.
 

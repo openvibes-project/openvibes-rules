@@ -1,0 +1,25 @@
+[package]
+name = "hardening-check"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+description = "Checks the OpenVIBES hardening rule sets (hardening-linux-l1) before they are signed and released"
+
+# The same checks as rules-check (its source, built against another pin):
+# pinned at the first agent with the hardening collector (P19), whose
+# evaluator is the CEL allowlist (subset v2 string methods). The baseline's
+# pin stays at the oldest agent.
+# Pinned at agent v0.2.7, the release that ships the collector.
+[[bin]]
+name = "hardening-check"
+path = "../checker/src/main.rs"
+
+[dependencies]
+openvibes-core = { git = "https://github.com/openvibes-project/openvibes-agent.git", tag = "v0.2.7" }
+openvibes-rules = { git = "https://github.com/openvibes-project/openvibes-agent.git", tag = "v0.2.7" }
+base64 = { version = "0.23.1", default-features = false, features = ["std"] }
+ed25519-dalek = { version = "3.0.0", default-features = false, features = ["fast"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+sha2 = { version = "0.11", default-features = false }

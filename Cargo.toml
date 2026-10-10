@@ -1,3 +1,3 @@
 [workspace]
-members = ["checker", "alarms-checker"]
+members = ["checker", "alarms-checker", "hardening-checker"]
 resolver = "3"

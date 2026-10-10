@@ -3,3 +3,11 @@ Copyright 2026 itismelime
 
 Licensed under the Apache License, Version 2.0 (see LICENSE).
 Releases before 2026-10-10 were published under the MIT License.
+
+The hardening rule sets (hardening/) were written using the ComplianceAsCode
+project (https://github.com/ComplianceAsCode/content) as a reference for
+which configuration settings matter. The rules' logic and wording are our
+own; no ComplianceAsCode content is copied. ComplianceAsCode is distributed
+under the BSD 3-Clause License; see its LICENSE file.
+
+No text, titles or numbering from the CIS Benchmarks are used.

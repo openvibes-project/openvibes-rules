@@ -77,6 +77,15 @@ jobs:
           [[ -f alarms/alarms.json ]] && args=()
           cargo run --locked -p alarms-check -- --dir alarms --cases tests/alarm-cases.json "${args[@]}"
 
+      - name: Check the hardening rules
+        run: |
+          # Signed by the maintainer; until the signed set exists only the
+          # sources are checked, in the agent's own evaluator.
+          args=(--sources-only)
+          [[ -f hardening/linux-l1/hardening-linux-l1.json ]] && args=(--set hardening-linux-l1)
+          cargo run --locked -p hardening-check -- --dir hardening/linux-l1 \
+            --cases tests/hardening-l1-cases.json --allowlist hardening.allowlist "${args[@]}"
+
   rpm:
     name: RPM (fedora:44)
     runs-on: ubuntu-24.04
