@@ -71,4 +71,4 @@ The alarm rules (`alarms/`, rule set `baseline-alarms`) ship in the same
 package, so an alarm-only change also re-signs the baseline at the next
 version (same rules) to give the package a new version.
 
-MIT licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Apache-2.0 licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
