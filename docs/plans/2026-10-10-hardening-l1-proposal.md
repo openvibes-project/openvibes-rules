@@ -14,19 +14,20 @@ pair (verified against ATT&CK 19.2).
 defaults are noted where a setting is unset (`""` / `-1` means "not set",
 so the program's default applies).
 
-## Decisions for the user
+## Decisions (user, 2026-10-10)
 
-1. **Noisy-by-nature checks:** password expiry (`PASS_MAX_DAYS`) is left
-   **out**: NIST SP 800-63B now advises against forced rotation, and it
-   would fire on nearly every host. Agree?
-2. **Container hosts:** IP forwarding is normal on hosts running Docker,
-   Podman or Kubernetes. Proposed: the rule skips hosts where
-   `docker.service`, `podman.service`, `containerd.service` or
-   `kubelet.service` is active. Agree, or drop the rule?
-3. **Catalog gap:** three account checks need a count, which CEL's subset
-   cannot take from a list. Proposed: add `accounts.uid0.count`,
-   `accounts.empty_password.count` and `accounts.shell_users.count` (int)
-   to P19 (protocol #45, agent #64). Agree?
+1. **Password expiry stays out** (`PASS_MAX_DAYS`): NIST SP 800-63B advises
+   against forced rotation.
+2. **IP forwarding is skipped on container hosts**: a container runtime
+   installed (`package.names`: docker, docker-ce, moby-engine, podman,
+   containerd, containerd.io, cri-o, kubelet) or running
+   (`service.active`: docker, podman, containerd, crio, kubelet); flagged
+   everywhere else.
+3. **Three count facts join P19**: `accounts.uid0.count`,
+   `accounts.empty_password.count`, `accounts.shell_users.count` (int),
+   so rules can count accounts (protocol #45, agent #64).
+
+The build waits until bulk triage (v0.2.7) is done.
 
 ## SSH (sshd settings)
 
@@ -55,7 +56,7 @@ so the program's default applies).
 | `harden.kernel.dmesg_restrict` | low | `kernel.dmesg_restrict` is 0 | TA0007 T1082 | medium |
 | `harden.fs.protected_links` | medium | `fs.protected_hardlinks` or `fs.protected_symlinks` is 0 | TA0004 T1068 | very low |
 | `harden.fs.suid_dumpable` | medium | `fs.suid_dumpable` is not 0 and cores are not piped to a handler | TA0006 T1003 | low |
-| `harden.net.ip_forward` | low | `net.ipv4.ip_forward` is 1 on a host that is not a container host (decision 2) | TA0112 T1599 | low with the skip |
+| `harden.net.ip_forward` | low | `net.ipv4.ip_forward` is 1 on a host with no container runtime installed or running (decision 2) | TA0112 T1599 | low with the skip |
 | `harden.net.send_redirects` | low | `conf.all.send_redirects` or `conf.default.send_redirects` is 1, not a router | TA0006 T1557 | medium |
 | `harden.net.accept_source_route` | medium | IPv4 or IPv6 `accept_source_route` (all) is 1 | TA0006 T1557 | very low |
 | `harden.net.accept_redirects` | low | IPv4 or IPv6 `accept_redirects` (all) is 1 | TA0006 T1557 | medium |
