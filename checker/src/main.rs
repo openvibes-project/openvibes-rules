@@ -103,7 +103,7 @@ fn check(args: &Args, now_ms: i64) -> Result<String, Vec<String>> {
     if !args.sources_only {
         let signed = read(&args.dir.join(format!("{}.json", args.set)));
         let key = read(&args.dir.join(format!("{}.key", args.set)))
-            .and_then(|bytes| checks::key_line(&String::from_utf8_lossy(&bytes)));
+            .and_then(|bytes| checks::key_line(&String::from_utf8_lossy(&bytes), &args.set));
         match (signed, key) {
             (Ok(signed), Ok(key)) => match checks::envelope(&signed, &key, &rules_bytes, now_ms) {
                 Ok(envelope) => {

@@ -21,7 +21,7 @@ fn public(seed: u8) -> String {
 }
 
 fn fixture_key() -> Key {
-    key_line(&format!("baseline openvibes-1 {}", public(7))).unwrap()
+    key_line(&format!("baseline openvibes-1 {}", public(7)), "baseline").unwrap()
 }
 
 /// An envelope over `payload`, signed by the key from `seed`.
@@ -68,11 +68,11 @@ fn rule_set_parses_and_refuses_duplicates() {
 #[test]
 fn key_line_parsing() {
     let key = public(7);
-    assert!(key_line(&format!("baseline openvibes-1 {key}\n")).is_ok());
-    assert!(key_line(&format!("  baseline  openvibes-1 {key}  ")).is_ok());
-    assert!(key_line(&format!("baseline {key}")).is_err());
-    assert!(key_line(&format!("baseline openvibes-1 {key} extra")).is_err());
-    assert!(key_line("baseline openvibes-1 not-a-key").is_err());
+    assert!(key_line(&format!("baseline openvibes-1 {key}\n"), "baseline").is_ok());
+    assert!(key_line(&format!("  baseline  openvibes-1 {key}  "), "baseline").is_ok());
+    assert!(key_line(&format!("baseline {key}"), "baseline").is_err());
+    assert!(key_line(&format!("baseline openvibes-1 {key} extra"), "baseline").is_err());
+    assert!(key_line("baseline openvibes-1 not-a-key", "baseline").is_err());
 }
 
 #[test]
@@ -221,7 +221,28 @@ fn invalid_case_facts_say_why() {
 }
 
 #[test]
-fn key_line_must_name_the_baseline_set() {
-    let err = key_line(&format!("baseline2 openvibes-1 {}", public(7))).unwrap_err();
-    assert!(err.contains("the rule set must be baseline"), "{err}");
+fn key_line_must_name_the_expected_set() {
+    let err = key_line(&format!("baseline2 openvibes-1 {}", public(7)), "baseline").unwrap_err();
+    assert!(
+        err.contains("baseline.key: the rule set must be baseline"),
+        "{err}"
+    );
+    // A hardening set's key names that set (2026-10-10: the first signed
+    // hardening release was refused as "must be baseline").
+    let line = format!("hardening-linux-l1 openvibes-1 {}", public(7));
+    assert!(key_line(&line, "hardening-linux-l1").is_ok());
+    let err = key_line(&line, "baseline").unwrap_err();
+    assert!(
+        err.contains("must be baseline, not hardening-linux-l1"),
+        "{err}"
+    );
+    let err = key_line(
+        &format!("baseline openvibes-1 {}", public(7)),
+        "hardening-linux-l1",
+    )
+    .unwrap_err();
+    assert!(
+        err.contains("hardening-linux-l1.key: the rule set must be hardening-linux-l1"),
+        "{err}"
+    );
 }
