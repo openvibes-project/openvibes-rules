@@ -21,5 +21,6 @@ then, with `hardening.allowlist` from the protocol's fact catalog.
 
 **Failure behaviour and tests.** As `rules-check`.
 
-**Not in CI yet.** A job for it needs a `.github/` change, which this
-repository changes only on request.
+**CI.** The "Rule checks" job runs it on every pull request and push to
+`main`: sources only until `hardening/linux-l1/hardening-linux-l1.json`
+(the signed set) exists, then with `--set hardening-linux-l1`.

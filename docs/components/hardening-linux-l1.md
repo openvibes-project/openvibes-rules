@@ -82,7 +82,8 @@ Every rule carries its MITRE ATT&CK pairs in `attack` (protocol P18).
   two more than the 41 proposed.
 - **File modes are compared with accepted values** (0644 or stricter for
   `/etc/passwd`, `/etc/group` and `/etc/crontab`; 0755 or stricter for
-  `/etc/cron.d`; 0600/0640 or stricter for `sshd_config`): the subset has no
+  `/etc/cron.d`; 0600/0640 or stricter for `sshd_config`, plus 0644 on
+  Debian, Ubuntu and Arch, which ship it so (user decision)): the subset has no
   list literals, and testing each permission digit exactly exceeds the
   evaluator's node budget. An unusual mode, not only a writable one, fires.
 - **IP forwarding is skipped on container hosts** (user decision): a
