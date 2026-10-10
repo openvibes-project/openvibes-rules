@@ -10,8 +10,7 @@ description = "Checks the OpenVIBES hardening rule sets (hardening-linux-l1) bef
 # pinned at the first agent with the hardening collector (P19), whose
 # evaluator is the CEL allowlist (subset v2 string methods). The baseline's
 # pin stays at the oldest agent.
-# ponytail: pinned to agent #64's commit until the release that ships it;
-# move the pin to that tag then.
+# Pinned at agent v0.2.7, the release that ships the collector.
 [[bin]]
 name = "hardening-check"
 path = "../checker/src/main.rs"
