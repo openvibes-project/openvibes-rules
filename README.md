@@ -65,7 +65,7 @@ the package repository to rebuild. If it stops partway (CI failed, Ctrl-C),
 run it again: it continues the open `release-vN` pull request without
 signing again.
 
-The signing key stays offline and encrypted: `release.sh` decrypts it into
+At a terminal gpg asks for the passphrase, up to three times. The signing key stays offline and encrypted: `release.sh` decrypts it into
 `$XDG_RUNTIME_DIR` (memory, only you can read it) for the signing alone and
 removes it straight after, also on an error. It never reaches git, GitHub or
 CI. By default it uses the one file matching
