@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# Cut a release: check the signed baseline's version, tag it, push the tag.
+# Release the rules in one command: check, sign every rule set at the next
+# version, open the pull request, merge it once CI is green, tag it.
 #
 # Pushing the tag vN starts .github/workflows/release.yml, which builds the RPM
-# and publishes the GitHub Release. Releases here are whole numbers (v1, v2,
-# ...), and the workflow fails unless the tag equals rule_set_version in
-# baseline/baseline.json, is on main and is above the last release.
+# and publishes the GitHub Release. Releases are whole numbers (v1, v2, ...);
+# every rule set is signed at vN, so the tag equals each envelope's version.
 #
-# That version sits inside the envelope the maintainer signs, so this script
-# cannot bump it: sign baseline.json at the new version, merge it to main, then
-# run this. Without a VERSION argument you are prompted, with the next number
-# offered.
+# The signing key is the maintainer's, encrypted with a passphrase
+# (gpg --symmetric). It is decrypted into $XDG_RUNTIME_DIR (memory, only you
+# can read it) for the signing alone and removed straight after, also on an
+# error or Ctrl-C. It never reaches git, GitHub or CI.
 #
-# Before tagging it waits for CI on main to finish green (needs gh; set
-# RELEASE_SKIP_CI=1 to skip that).
+#   OPENVIBES_RULES_KEY   the encrypted key (default: the one file matching
+#                         /run/media/$USER/*/openvibes/openvibes-rules.key.gpg)
+#
+# Stopped after the pull request (CI failed, Ctrl-C)? Fix it on the
+# release-vN branch if needed and run this again: an open release pull request
+# is picked up where it was, without signing again.
 #
 # Usage: bash scripts/release.sh [VERSION]
 set -euo pipefail
@@ -53,45 +57,138 @@ wait_for_ci() {
   done
 }
 
-[[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]] || die "run this from the $branch branch"
+# The rule sets this repository signs: directory, sources, envelope, rule set
+# id, and the check that verifies the signed envelope. A set is signed only once
+# its trust line exists (committed by the maintainer, public).
+sets=(
+  "baseline|rules.json|baseline.json|baseline.key|baseline|rules-check -- --dir baseline --cases tests/cases.json --allowlist facts.allowlist"
+  "alarms|rules.json|alarms.json|alarms.key|baseline-alarms|alarms-check -- --dir alarms --cases tests/alarm-cases.json"
+  "hardening/linux-l1|rules.json|hardening-linux-l1.json|hardening-linux-l1.key|hardening-linux-l1|hardening-check -- --dir hardening/linux-l1 --cases tests/hardening-l1-cases.json --allowlist hardening.allowlist --set hardening-linux-l1"
+)
+
+# Runs every set's check: on the sources ($1 = --sources-only) or signed.
+check_sets() {
+  local entry dir rules env key id check
+  cargo test --locked --quiet > /dev/null || die "cargo test failed"
+  for entry in "${sets[@]}"; do
+    IFS='|' read -r dir rules env key id check <<<"$entry"
+    [[ -f $dir/$key ]] || continue
+    # shellcheck disable=SC2086 # the check is a word list
+    cargo run --locked --quiet -p $check ${1:-} || die "the $id check failed"
+  done
+}
+
+# Decrypts the key into $XDG_RUNTIME_DIR, signs every trusted set at $1, and
+# removes the key again.
+sign_sets() {
+  local version=$1 enc=${OPENVIBES_RULES_KEY:-} tmp entry dir rules env key id check issuer
+  if [[ -z $enc ]]; then
+    local found=(/run/media/"$USER"/*/openvibes/openvibes-rules.key.gpg)
+    [[ ${#found[@]} == 1 && -f ${found[0]} ]] \
+      || die "set OPENVIBES_RULES_KEY to the encrypted key (no single /run/media/$USER/*/openvibes/openvibes-rules.key.gpg)"
+    enc=${found[0]}
+  fi
+  [[ -f $enc ]] || die "no encrypted key at $enc"
+  [[ -n ${XDG_RUNTIME_DIR:-} && -d $XDG_RUNTIME_DIR ]] || die "XDG_RUNTIME_DIR is not set; the key is only decrypted there (memory)"
+  tmp=$(umask 077 && mktemp -d "$XDG_RUNTIME_DIR/openvibes-rules.XXXXXX")
+  # shellcheck disable=SC2064 # $tmp is fixed now
+  trap "rm -rf '$tmp'" EXIT INT TERM
+  echo "Decrypting the signing key ($enc)..."
+  # At a terminal gpg asks for the passphrase itself; otherwise it is read
+  # from standard input. --no-symkey-cache: gpg-agent does not keep it.
+  local pass=(--pinentry-mode loopback)
+  [[ -t 0 ]] || pass+=(--passphrase-fd 0)
+  (umask 077 && gpg --quiet --batch --no-symkey-cache "${pass[@]}" --decrypt --output "$tmp/key" "$enc") \
+    || die "could not decrypt the key (wrong passphrase?)"
+  for entry in "${sets[@]}"; do
+    IFS='|' read -r dir rules env key id check <<<"$entry"
+    [[ -f $dir/$key ]] || continue
+    issuer=$(awk '{ print $2 }' "$dir/$key")
+    rm -f "$dir/$env"
+    openvibes-admin rules sign "$tmp/key" "$dir/$rules" --rule-set "$id" --version "$version" \
+      --issuer "$issuer" -o "$dir/$env" > /dev/null || die "signing $id failed"
+    echo "  signed $id v$version"
+  done
+  rm -rf "$tmp"
+  trap - EXIT INT TERM
+}
+
+command -v gh > /dev/null || die "gh is needed (https://cli.github.com)"
 [[ -z $(git status --porcelain) ]] || die "working tree is not clean"
+git fetch --quiet --tags "$remote"
 
-git fetch --quiet --tags "$remote" "$branch"
-[[ $(git rev-parse HEAD) == "$(git rev-parse "$remote/$branch")" ]] \
-  || die "$branch is not in sync with $remote/$branch (pull or push first)"
+# Every trusted set's envelope is signed at $1.
+check_versions() {
+  local entry dir rules env key id check v
+  for entry in "${sets[@]}"; do
+    IFS='|' read -r dir rules env key id check <<<"$entry"
+    [[ -f $dir/$key ]] || continue
+    v=$(jq -er .rule_set_version "$dir/$env" 2>/dev/null) || die "$dir/$env is not a signed envelope"
+    [[ $v == "$1" ]] || die "$dir/$env is signed at v$v, not v$1"
+  done
+}
 
-# The version the baseline is signed at, as release.yml reads it.
-signed=$(jq -er .rule_set_version baseline/baseline.json) \
-  || die "cannot read rule_set_version from baseline/baseline.json"
-[[ $signed =~ ^[1-9][0-9]*$ ]] || die "rule_set_version '$signed' is not a whole number"
+# An open release pull request from a branch of this repository (never a
+# fork's): carry on with it, after checking exactly the commit to be merged.
+pr=$(gh pr list --state open --json number,headRefName,isCrossRepository \
+  --jq '[.[] | select((.isCrossRepository | not) and (.headRefName | test("^release-v[1-9][0-9]*$")))] | first | "\(.number) \(.headRefName)"' 2>/dev/null || true)
+if [[ -n $pr && $pr != null* && $pr != " " ]]; then
+  number=${pr%% *}
+  version=${pr##*release-v}
+  echo "Continuing the open release pull request #$number (v$version)."
+  git fetch --quiet "$remote" "release-v$version"
+  head=$(git rev-parse FETCH_HEAD)
+  [[ $head == "$(gh pr view "$number" --json headRefOid --jq .headRefOid)" ]] \
+    || die "pull request #$number's head is not $remote/release-v$version; run this again"
+  git switch --quiet --detach "$head"
+  echo "Checking the signed rule sets on ${head:0:7}..."
+  check_versions "$version"
+  check_sets
+else
+  [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]] || die "run this from the $branch branch"
+  [[ $(git rev-parse HEAD) == "$(git rev-parse "$remote/$branch")" ]] \
+    || die "$branch is not in sync with $remote/$branch (pull or push first)"
 
-# The highest version already released: tags, not just the envelope.
-highest=0
-while read -r tag; do
-  if (( ${tag#v} > highest )); then highest=${tag#v}; fi
-done < <(git tag --list 'v*' | grep -E '^v[1-9][0-9]*$' || true)
-suggested=$((highest + 1))
+  # The highest version already released: tags, not just the envelope.
+  highest=0
+  while read -r tag; do
+    if (( ${tag#v} > highest )); then highest=${tag#v}; fi
+  done < <(git tag --list 'v*' | grep -E '^v[1-9][0-9]*$' || true)
+  version=${1:-$((highest + 1))}
+  version=${version#v}
+  [[ $version =~ ^[1-9][0-9]*$ ]] || die "'$version' is not a whole number like 3"
+  (( version > highest )) || die "v$version is not higher than the existing release v$highest"
 
-echo "baseline.json is signed at: v$signed"
-echo "Highest release:            v$highest"
+  echo "Checking the rules..."
+  check_sets --sources-only
+  read -r -p "Release v$version (sign every rule set at v$version)? [y/N] " answer
+  [[ $answer == [yY]* ]] || die "cancelled"
 
-version=${1:-}
-if [[ -z $version ]]; then
-  read -r -p "New version [$suggested]: " version
-  version=${version:-$suggested}
+  sign_sets "$version"
+  echo "Checking the signed rule sets..."
+  check_versions "$version"
+  check_sets
+
+  git switch --quiet -c "release-v$version"
+  git add -A -- '*.json'
+  git commit --quiet -m "Release v$version: sign every rule set at v$version"
+  git push --quiet -u "$remote" "release-v$version"
+  head=$(git rev-parse HEAD)
+  number=$(gh pr create --base "$branch" --head "release-v$version" --title "Release v$version" \
+    --body "Every rule set signed at v$version by \`scripts/release.sh\`." | grep -oE '[0-9]+$')
+  echo "Opened pull request #$number."
 fi
-version=${version#v}
 
-[[ $version =~ ^[1-9][0-9]*$ ]] || die "'$version' is not a whole number like 3"
-(( version > highest )) || die "v$version is not higher than the existing release v$highest"
-[[ $version == "$signed" ]] \
-  || die "baseline.json is signed at v$signed; sign it at v$version and merge that to $branch first"
-
+# Only the commit checked above is merged: GitHub refuses the merge if the
+# branch has moved since.
+wait_for_ci "$head"
+gh pr merge "$number" --merge --match-head-commit "$head" > /dev/null \
+  || die "could not merge #$number (did release-v$version change since ${head:0:7}? run this again)"
+echo "Merged #$number."
+git switch --quiet "$branch"
+git pull --quiet --ff-only "$remote" "$branch"
 wait_for_ci "$(git rev-parse HEAD)"
-read -r -p "Tag v$version and push to $remote? [y/N] " answer
-[[ $answer == [yY]* ]] || die "cancelled"
 
 git tag -a "v$version" -m "v$version"
-git push "$remote" "v$version"
-
+git push --quiet "$remote" "v$version"
 echo "Released v$version. Watch the Release workflow in the repository's Actions tab."
