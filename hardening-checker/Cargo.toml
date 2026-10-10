@@ -17,8 +17,8 @@ name = "hardening-check"
 path = "../checker/src/main.rs"
 
 [dependencies]
-openvibes-core = { git = "https://github.com/openvibes-project/openvibes-agent.git", rev = "6cc20081cb3c904f840430e059f4f6323d0202a0" }
-openvibes-rules = { git = "https://github.com/openvibes-project/openvibes-agent.git", rev = "6cc20081cb3c904f840430e059f4f6323d0202a0" }
+openvibes-core = { git = "https://github.com/openvibes-project/openvibes-agent.git", tag = "v0.2.7" }
+openvibes-rules = { git = "https://github.com/openvibes-project/openvibes-agent.git", tag = "v0.2.7" }
 base64 = { version = "0.23.1", default-features = false, features = ["std"] }
 ed25519-dalek = { version = "3.0.0", default-features = false, features = ["fast"] }
 serde = { version = "1.0.228", features = ["derive"] }
