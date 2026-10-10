@@ -17,6 +17,8 @@ pass() { echo "ok: $*"; }
 
 # GitHub: a bare repository with main, the throwaway key's trust lines in it.
 git clone --quiet --bare --branch main "$repo" "$work/remote.git"
+# Test the commit under test, not whatever the local main is.
+git -C "$work/remote.git" fetch --quiet "$repo" "+HEAD:refs/heads/main"
 git clone --quiet "$work/remote.git" "$work/clone"
 cd "$work/clone"
 git config user.name test && git config user.email test@example.invalid
@@ -24,6 +26,7 @@ openvibes-admin rules keygen --rule-set baseline --issuer test-1 "$work/key" > /
 public=$(openvibes-admin rules keygen --show-public --rule-set baseline --issuer test-1 "$work/key" | awk '{ print $3 }')
 echo "baseline test-1 $public" > baseline/baseline.key
 echo "baseline-alarms test-1 $public" > alarms/alarms.key
+echo "hardening-linux-l1 test-1 $public" > hardening/linux-l1/hardening-linux-l1.key
 git commit --quiet -am "test: throwaway trust lines"
 git push --quiet origin main
 gpg --quiet --batch --pinentry-mode loopback --passphrase right --symmetric --output "$work/key.gpg" "$work/key"
@@ -73,6 +76,15 @@ run_dir_empty || fail "a key was left in XDG_RUNTIME_DIR after a failure"
 [[ -z $(git status --porcelain) ]] || fail "a failed run changed files"
 [[ -z $(git ls-remote "$work/remote.git" "refs/tags/v$next") ]] || fail "a failed run tagged"
 pass "a wrong passphrase stops before signing and leaves no key"
+
+# 1b. At a terminal gpg must ask for the passphrase itself: --batch there
+# refused ("can't get input") before any passphrase was typed (2026-10-10).
+python3 "$repo/tests/at-terminal.py" '[y/N]' y 'assphrase' wrong -- \
+  bash "$repo/scripts/release.sh" > "$work/out1b" 2>&1 || true
+grep -q 'could not decrypt' "$work/out1b" || { cat "$work/out1b"; fail "no decrypt error at a terminal"; }
+if grep -q "batchmode" "$work/out1b"; then cat "$work/out1b"; fail "gpg did not ask for the passphrase at a terminal"; fi
+run_dir_empty || fail "a key was left in XDG_RUNTIME_DIR after a terminal failure"
+pass "at a terminal gpg asks for the passphrase"
 
 # 2. Signed, pull request opened, the merge fails (CI red): stops there.
 if printf 'y\nright\n' | FAKE_GH_MERGE_FAIL=1 bash "$repo/scripts/release.sh" > "$work/out2" 2>&1; then fail "a failed merge released"; fi

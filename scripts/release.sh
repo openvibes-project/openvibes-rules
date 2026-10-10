@@ -94,11 +94,12 @@ sign_sets() {
   # shellcheck disable=SC2064 # $tmp is fixed now
   trap "rm -rf '$tmp'" EXIT INT TERM
   echo "Decrypting the signing key ($enc)..."
-  # At a terminal gpg asks for the passphrase itself; otherwise it is read
-  # from standard input. --no-symkey-cache: gpg-agent does not keep it.
+  # At a terminal gpg asks for the passphrase itself (not --batch: batch
+  # mode refuses to ask); otherwise it is read from standard input.
+  # --no-symkey-cache: gpg-agent does not keep it.
   local pass=(--pinentry-mode loopback)
-  [[ -t 0 ]] || pass+=(--passphrase-fd 0)
-  (umask 077 && gpg --quiet --batch --no-symkey-cache "${pass[@]}" --decrypt --output "$tmp/key" "$enc") \
+  [[ -t 0 ]] || pass+=(--batch --passphrase-fd 0)
+  (umask 077 && gpg --quiet --no-symkey-cache "${pass[@]}" --decrypt --output "$tmp/key" "$enc") \
     || die "could not decrypt the key (wrong passphrase?)"
   for entry in "${sets[@]}"; do
     IFS='|' read -r dir rules env key id check <<<"$entry"

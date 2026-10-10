@@ -50,24 +50,28 @@ pub fn rule_set(bytes: &[u8]) -> Result<RuleSet, String> {
     Ok(rules)
 }
 
-/// Parses `RULE_SET ISSUER_KEY_ID PUBLIC_KEY` (base64url, no padding).
-pub fn key_line(text: &str) -> Result<Key, String> {
+/// Parses `<expected>.key`: `RULE_SET ISSUER_KEY_ID PUBLIC_KEY` (base64url,
+/// no padding), whose set must be `expected` (`baseline`, or the `--set`).
+pub fn key_line(text: &str, expected: &str) -> Result<Key, String> {
+    let file = format!("{expected}.key");
     let fields: Vec<&str> = text.split_whitespace().collect();
     let [set, issuer, public] = fields.as_slice() else {
-        return Err("baseline.key: want RULE_SET ISSUER_KEY_ID PUBLIC_KEY".into());
+        return Err(format!("{file}: want RULE_SET ISSUER_KEY_ID PUBLIC_KEY"));
     };
-    // Setup looks for the set named `baseline`; the issuer may rotate.
-    if *set != "baseline" {
+    // Setup looks for the set by its name; the issuer may rotate.
+    if *set != expected {
         return Err(format!(
-            "baseline.key: the rule set must be baseline, not {set}"
+            "{file}: the rule set must be {expected}, not {set}"
         ));
     }
-    let id = |value: &str| Identifier::new(value).map_err(|e| format!("baseline.key: {e}"));
+    let id = |value: &str| Identifier::new(value).map_err(|e| format!("{file}: {e}"));
     let public: [u8; 32] = URL_SAFE_NO_PAD
         .decode(public)
         .ok()
         .and_then(|bytes| bytes.try_into().ok())
-        .ok_or("baseline.key: the public key is not 32 bytes of base64url")?;
+        .ok_or(format!(
+            "{file}: the public key is not 32 bytes of base64url"
+        ))?;
     Ok((id(set)?, id(issuer)?, public))
 }
 
@@ -80,8 +84,9 @@ pub fn envelope(
     now_ms: i64,
 ) -> Result<SignedRuleEnvelope, String> {
     let (set, issuer, public) = key;
+    let name = set.as_str();
     let trusted = TrustedRuleKey::new(set.clone(), issuer.clone(), *public)
-        .map_err(|e| format!("baseline.key: {e}"))?;
+        .map_err(|e| format!("{name}.key: {e}"))?;
     RuleLoader::new(vec![trusted], ResourceLimits::V1)
         .and_then(|loader| {
             loader.load_json(
@@ -93,13 +98,13 @@ pub fn envelope(
                 },
             )
         })
-        .map_err(|e| format!("baseline.json does not load: {e}"))?;
+        .map_err(|e| format!("{name}.json does not load: {e}"))?;
     let envelope: SignedRuleEnvelope =
-        serde_json::from_slice(bytes).map_err(|e| format!("baseline.json: {e}"))?;
+        serde_json::from_slice(bytes).map_err(|e| format!("{name}.json: {e}"))?;
     if envelope.payload.as_bytes() != rules_bytes {
-        return Err(
-            "baseline.json: payload differs from rules.json (sign rules.json again)".into(),
-        );
+        return Err(format!(
+            "{name}.json: payload differs from rules.json (sign rules.json again)"
+        ));
     }
     Ok(envelope)
 }
