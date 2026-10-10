@@ -117,13 +117,33 @@ command -v gh > /dev/null || die "gh is needed (https://cli.github.com)"
 [[ -z $(git status --porcelain) ]] || die "working tree is not clean"
 git fetch --quiet --tags "$remote"
 
-# An open release pull request: carry on with it.
-pr=$(gh pr list --state open --json number,headRefName \
-  --jq '[.[] | select(.headRefName | test("^release-v[1-9][0-9]*$"))] | first | "\(.number) \(.headRefName)"' 2>/dev/null || true)
+# Every trusted set's envelope is signed at $1.
+check_versions() {
+  local entry dir rules env key id check v
+  for entry in "${sets[@]}"; do
+    IFS='|' read -r dir rules env key id check <<<"$entry"
+    [[ -f $dir/$key ]] || continue
+    v=$(jq -er .rule_set_version "$dir/$env" 2>/dev/null) || die "$dir/$env is not a signed envelope"
+    [[ $v == "$1" ]] || die "$dir/$env is signed at v$v, not v$1"
+  done
+}
+
+# An open release pull request from a branch of this repository (never a
+# fork's): carry on with it, after checking exactly the commit to be merged.
+pr=$(gh pr list --state open --json number,headRefName,isCrossRepository \
+  --jq '[.[] | select((.isCrossRepository | not) and (.headRefName | test("^release-v[1-9][0-9]*$")))] | first | "\(.number) \(.headRefName)"' 2>/dev/null || true)
 if [[ -n $pr && $pr != null* && $pr != " " ]]; then
   number=${pr%% *}
   version=${pr##*release-v}
   echo "Continuing the open release pull request #$number (v$version)."
+  git fetch --quiet "$remote" "release-v$version"
+  head=$(git rev-parse FETCH_HEAD)
+  [[ $head == "$(gh pr view "$number" --json headRefOid --jq .headRefOid)" ]] \
+    || die "pull request #$number's head is not $remote/release-v$version; run this again"
+  git switch --quiet --detach "$head"
+  echo "Checking the signed rule sets on ${head:0:7}..."
+  check_versions "$version"
+  check_sets
 else
   [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]] || die "run this from the $branch branch"
   [[ $(git rev-parse HEAD) == "$(git rev-parse "$remote/$branch")" ]] \
@@ -146,19 +166,24 @@ else
 
   sign_sets "$version"
   echo "Checking the signed rule sets..."
+  check_versions "$version"
   check_sets
 
   git switch --quiet -c "release-v$version"
   git add -A -- '*.json'
   git commit --quiet -m "Release v$version: sign every rule set at v$version"
   git push --quiet -u "$remote" "release-v$version"
+  head=$(git rev-parse HEAD)
   number=$(gh pr create --base "$branch" --head "release-v$version" --title "Release v$version" \
     --body "Every rule set signed at v$version by \`scripts/release.sh\`." | grep -oE '[0-9]+$')
   echo "Opened pull request #$number."
 fi
 
-wait_for_ci "$(gh pr view "$number" --json headRefOid --jq .headRefOid)"
-gh pr merge "$number" --merge > /dev/null || die "could not merge #$number"
+# Only the commit checked above is merged: GitHub refuses the merge if the
+# branch has moved since.
+wait_for_ci "$head"
+gh pr merge "$number" --merge --match-head-commit "$head" > /dev/null \
+  || die "could not merge #$number (did release-v$version change since ${head:0:7}? run this again)"
 echo "Merged #$number."
 git switch --quiet "$branch"
 git pull --quiet --ff-only "$remote" "$branch"

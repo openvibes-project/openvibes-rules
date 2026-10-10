@@ -37,20 +37,29 @@ cat > "$work/bin/gh" <<'EOF'
 set -euo pipefail
 prs=$FAKE_GH_PRS
 case "$1 $2" in
-  "pr list")   for f in "$prs"/*; do [[ -e $f ]] && echo "$(basename "$f") $(cat "$f")"; done | head -1 ;;
+  # Each file: "head cross-repository". Like the real --jq, only this repository's.
+  "pr list")   for f in "$prs"/*; do [[ -e $f ]] && read -r h c < "$f" && [[ $c == false ]] && echo "$(basename "$f") $h"; done | head -1 ;;
   "pr create") n=$(( $(ls "$prs" | wc -l) + 7 )); echo "${*: -1}" > /dev/null
-               head=$(sed -n 's/.*--head \([^ ]*\).*/\1/p' <<<"$*"); echo "$head" > "$prs/$n"
+               head=$(sed -n 's/.*--head \([^ ]*\).*/\1/p' <<<"$*"); echo "$head false" > "$prs/$n"
                echo "https://github.com/example/rules/pull/$n" ;;
-  "pr view")   git rev-parse "origin/$(cat "$prs/$3")" ;;
+  "pr view")   read -r h _ < "$prs/$3"; git ls-remote "$FAKE_GH_REMOTE" "refs/heads/$h" | cut -f1 ;;
   "pr merge")  [[ -z ${FAKE_GH_MERGE_FAIL:-} ]] || exit 1
-               head=$(cat "$prs/$3"); tmp=$(mktemp -d); git clone --quiet "$FAKE_GH_REMOTE" "$tmp"
+               read -r head _ < "$prs/$3"; tmp=$(mktemp -d); git clone --quiet "$FAKE_GH_REMOTE" "$tmp"
+               if [[ -n ${FAKE_GH_PUSH_BEFORE_MERGE:-} ]]; then   # someone pushes to the branch meanwhile
+                 git -C "$tmp" switch --quiet "$head"
+                 echo '{"schema_version":1,"rules":[]}' > "$tmp/baseline/rules.json"
+                 git -C "$tmp" -c user.name=x -c user.email=x@example.invalid commit --quiet -am "late change"
+                 git -C "$tmp" push --quiet origin "$head"; git -C "$tmp" switch --quiet main
+               fi
+               # GitHub refuses --match-head-commit when the head moved.
+               want=$(sed -n 's/.*--match-head-commit \([0-9a-f]*\).*/\1/p' <<<"$*")
+               [[ -n $want && $want == "$(git -C "$tmp" rev-parse "origin/$head")" ]] || { echo "head moved" >&2; exit 1; }
                git -C "$tmp" -c user.name=gh -c user.email=gh@example.invalid merge --quiet --no-ff -m "Merge #$3" "origin/$head"
                git -C "$tmp" push --quiet origin main; rm -rf "$tmp" "$prs/$3" ;;
   *) echo "fake gh: unexpected $*" >&2; exit 2 ;;
 esac
 EOF
 chmod +x "$work/bin/gh"
-# The fake pr list prints "N head"; release.sh asks gh for "N head" via --jq.
 export PATH=$work/bin:$PATH FAKE_GH_PRS=$work/prs FAKE_GH_REMOTE=$work/remote.git
 
 highest=$(git tag --list 'v*' | grep -E '^v[0-9]+$' | sed 's/^v//' | sort -n | tail -1)
@@ -76,7 +85,27 @@ done
 [[ -z $(git ls-remote "$work/remote.git" "refs/tags/v$next") ]] || fail "tagged before the merge"
 pass "every set signed at v$next, the key removed, nothing tagged before the merge"
 
-# 3. Run again without the key: the open pull request is merged and tagged.
+# 3. A pull request from a fork named release-vN is never picked up, and a
+#    commit pushed to the release branch after the checks is never merged.
+echo "release-v$next true" > "$work/prs/1"
+git switch --quiet main
+if OPENVIBES_RULES_KEY=/nonexistent FAKE_GH_PUSH_BEFORE_MERGE=1 bash "$repo/scripts/release.sh" < /dev/null > "$work/out3a" 2>&1; then
+  cat "$work/out3a"; fail "merged a branch that moved after the checks"
+fi
+grep -q "Continuing the open release pull request #7" "$work/out3a" || { cat "$work/out3a"; fail "did not resume our own pull request"; }
+[[ -z $(git ls-remote "$work/remote.git" "refs/tags/v$next") ]] || fail "tagged a moved branch"
+pass "a fork's release-vN is ignored; a branch that moved after the checks is not merged"
+if OPENVIBES_RULES_KEY=/nonexistent bash "$repo/scripts/release.sh" < /dev/null > "$work/out3b" 2>&1; then
+  cat "$work/out3b"; fail "released an unsigned change"
+fi
+grep -q "check failed" "$work/out3b" || { cat "$work/out3b"; fail "the late change was not caught by the signed check"; }
+pass "resuming checks the signed sets on the pull request's head first"
+# Undo the late change on the branch, as the maintainer would.
+git fetch --quiet origin && git switch --quiet main
+git push --quiet --force origin "origin/release-v$next~1:refs/heads/release-v$next"
+rm "$work/prs/1"
+
+# 4. Run again without the key: the open pull request is merged and tagged.
 git switch --quiet main
 if ! OPENVIBES_RULES_KEY=/nonexistent bash "$repo/scripts/release.sh" < /dev/null > "$work/out3" 2>&1; then
   cat "$work/out3"; fail "resuming failed"
