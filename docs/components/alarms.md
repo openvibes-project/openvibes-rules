@@ -64,13 +64,8 @@ cargo run --locked -p alarms-check -- --dir alarms --cases tests/alarm-cases.jso
 
 ## Releasing (maintainer)
 
-1. Sign `alarms/rules.json` with the same offline key as the baseline, as
-   rule set `baseline-alarms`:
-
-   ```sh
-   openvibes-admin rules sign "$K" alarms/rules.json --rule-set baseline-alarms \
-       --version N --issuer openvibes-1 -o alarms/alarms.json
-   ```
+1. `scripts/release.sh` signs `alarms/rules.json` with the baseline's key, as
+   rule set `baseline-alarms`, at the release's version (README, Releasing).
 
 2. In the same pull request, add `alarms.json` and `alarms.key` to the RPM
    (`openvibes-rules-baseline.spec`).
