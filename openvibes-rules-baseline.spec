@@ -2,7 +2,7 @@ Name:           openvibes-rules-baseline
 Version:        %{rule_version}
 Release:        1%{?dist}
 Summary:        OpenVIBES signed baseline rule set
-License:        MIT
+License:        Apache-2.0
 URL:            https://github.com/openvibes-project/openvibes-rules
 BuildArch:      noarch
 Source0:        baseline.json
@@ -23,8 +23,13 @@ install -D -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/openvibes/rules/baseline.k
 # The threat-alarm rule set (P14) lives in alarms/ (build-rpm.sh passes it).
 install -D -m 0644 %{alarms_dir}/alarms.json %{buildroot}%{_datadir}/openvibes/rules/alarms.json
 install -D -m 0644 %{alarms_dir}/alarms.key %{buildroot}%{_datadir}/openvibes/rules/alarms.key
+# Apache 2.0 section 4: the licence and NOTICE travel with the rules.
+install -D -m 0644 %{license_dir}/LICENSE %{buildroot}%{_licensedir}/%{name}/LICENSE
+install -D -m 0644 %{license_dir}/NOTICE %{buildroot}%{_licensedir}/%{name}/NOTICE
 
 %files
+%license %{_licensedir}/%{name}/LICENSE
+%license %{_licensedir}/%{name}/NOTICE
 %dir %{_datadir}/openvibes
 %dir %{_datadir}/openvibes/rules
 %{_datadir}/openvibes/rules/baseline.json

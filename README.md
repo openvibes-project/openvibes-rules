@@ -50,29 +50,42 @@ cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
 
 ## Releasing (maintainer)
 
-1. Change `baseline/rules.json` and `tests/cases.json`; `--sources-only` passes.
-2. Sign with the next version (the private key stays offline). `rules sign`
-   refuses a key file others can read, and FAT/exFAT sticks show every file
-   as 0644, so sign from a private copy in memory and remove it after:
+One command, from an up-to-date `main`:
 
-   ```sh
-   K="$XDG_RUNTIME_DIR/openvibes-rules.key"   # tmpfs, only you can read it
-   install -m 0600 /run/media/$USER/STICK/openvibes/openvibes-rules.key "$K"
-   rm -f baseline/baseline.json
-   openvibes-admin rules sign "$K" baseline/rules.json --rule-set baseline \
-       --version N --issuer openvibes-1 -o baseline/baseline.json
-   rm -f "$K"
-   ```
-3. Open a pull request; CI must be green; merge.
-4. Tag `vN` on the merge commit. The release workflow builds, signs and
-   publishes the RPM and tells the package repository to rebuild.
+```sh
+bash scripts/release.sh
+```
 
-Re-sign (a new version, same rules) before the envelope has less than a
+It checks every rule set, asks once to release the next version (vN), asks
+for the signing key's passphrase, and signs **every** rule set at vN
+(baseline, alarms, and any set whose trust line exists). Then it checks the
+signed envelopes, opens the pull request, merges it when CI is green, and
+tags vN. The release workflow builds, signs and publishes the RPM and tells
+the package repository to rebuild. If it stops partway (CI failed, Ctrl-C),
+run it again: it continues the open `release-vN` pull request without
+signing again.
+
+The signing key stays offline and encrypted: `release.sh` decrypts it into
+`$XDG_RUNTIME_DIR` (memory, only you can read it) for the signing alone and
+removes it straight after, also on an error. It never reaches git, GitHub or
+CI. By default it uses the one file matching
+`/run/media/$USER/*/openvibes/openvibes-rules.key.gpg` (the stick);
+`OPENVIBES_RULES_KEY=path` names another. To encrypt a plain key once (then
+remove the plain copy):
+
+```sh
+gpg --symmetric --cipher-algo AES256 --no-symkey-cache \
+    -o /run/media/$USER/STICK/openvibes/openvibes-rules.key.gpg \
+    /run/media/$USER/STICK/openvibes/openvibes-rules.key
+```
+
+`bash tests/release-test.sh` tests the script with a throwaway key, a local
+repository and a fake `gh`.
+
+Release again (same rules are fine) before the envelopes have less than a
 year left; CI refuses an envelope with less than 365 days.
 
-The RPM version (and the release tag) is the baseline's `rule_set_version`.
-The alarm rules (`alarms/`, rule set `baseline-alarms`) ship in the same
-package, so an alarm-only change also re-signs the baseline at the next
-version (same rules) to give the package a new version.
+The RPM version, the release tag and every envelope's `rule_set_version` are
+the same number, so any change, alarm-only included, is one release.
 
-MIT licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Apache-2.0 licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
