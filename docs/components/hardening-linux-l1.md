@@ -67,9 +67,13 @@ Every rule carries its MITRE ATT&CK pairs in `attack` (protocol P18).
 - `tests/hardening-l1-cases.json`: per rule, a match, a no_match and an
   `unavailable` case (the source the rule reads is missing), and one case
   per OS family where a rule branches on `os.id_like`.
-- Signing: the maintainer adds the trust line and the signed envelope
-  (`hardening/linux-l1/hardening-linux-l1.key` and `.json`, checked with
-  `--set hardening-linux-l1`); not signed yet.
+- Signed: `hardening/linux-l1/hardening-linux-l1.json` (Ed25519, issuer
+  `openvibes-1`, version 4 from release v4) and its key line
+  `hardening/linux-l1/hardening-linux-l1.key`. The RPM
+  `openvibes-rules-baseline` installs both to `/usr/share/openvibes/rules/`
+  (0644); platform Setup and `helper rules-apply` trust and publish them, and
+  the platform switches the set per asset group (platform spec
+  `2026-10-14-rule-set-assignment-design.md`).
 
 ## Design choices (quiet over complete)
 
@@ -107,8 +111,9 @@ kernel has no such setting) is `unavailable`, never a pass or a finding.
 
 ```text
 cargo run -p hardening-check -- --dir hardening/linux-l1 \
-  --cases tests/hardening-l1-cases.json --allowlist hardening.allowlist --sources-only
+  --cases tests/hardening-l1-cases.json --allowlist hardening.allowlist \
+  --set hardening-linux-l1
 ```
 
-prints `ok: 43 rules, 149 cases`. After signing, drop `--sources-only` and add
-`--set hardening-linux-l1`.
+prints `ok: 43 rules, 154 cases` (plus the set's expiry) and verifies the envelope against the key.
+`bash scripts/build-rpm.sh dist` in `fedora:44` checks the RPM ships both files.

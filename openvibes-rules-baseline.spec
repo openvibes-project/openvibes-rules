@@ -10,8 +10,10 @@ Source1:        baseline.key
 
 %description
 The OpenVIBES project's signed baseline rule set, the threat-alarm rule
-set (baseline-alarms, for agents 0.2 and later), and their public keys.
-openvibes-admin Setup trusts the keys and publishes the rule sets.
+set (baseline-alarms, for agents 0.2 and later), the Linux hardening
+level 1 rule set (hardening-linux-l1), and their public keys.
+openvibes-admin Setup trusts the keys and publishes the rule sets; the
+platform decides per host whether hardening runs.
 
 %prep
 
@@ -23,6 +25,10 @@ install -D -m 0644 %{SOURCE1} %{buildroot}%{_datadir}/openvibes/rules/baseline.k
 # The threat-alarm rule set (P14) lives in alarms/ (build-rpm.sh passes it).
 install -D -m 0644 %{alarms_dir}/alarms.json %{buildroot}%{_datadir}/openvibes/rules/alarms.json
 install -D -m 0644 %{alarms_dir}/alarms.key %{buildroot}%{_datadir}/openvibes/rules/alarms.key
+# The project's hardening sets live in hardening/ (build-rpm.sh passes it);
+# level 2 joins here once it is signed.
+install -D -m 0644 %{hardening_dir}/linux-l1/hardening-linux-l1.json %{buildroot}%{_datadir}/openvibes/rules/hardening-linux-l1.json
+install -D -m 0644 %{hardening_dir}/linux-l1/hardening-linux-l1.key %{buildroot}%{_datadir}/openvibes/rules/hardening-linux-l1.key
 # Apache 2.0 section 4: the licence and NOTICE travel with the rules.
 install -D -m 0644 %{license_dir}/LICENSE %{buildroot}%{_licensedir}/%{name}/LICENSE
 install -D -m 0644 %{license_dir}/NOTICE %{buildroot}%{_licensedir}/%{name}/NOTICE
@@ -36,6 +42,8 @@ install -D -m 0644 %{license_dir}/NOTICE %{buildroot}%{_licensedir}/%{name}/NOTI
 %{_datadir}/openvibes/rules/baseline.key
 %{_datadir}/openvibes/rules/alarms.json
 %{_datadir}/openvibes/rules/alarms.key
+%{_datadir}/openvibes/rules/hardening-linux-l1.json
+%{_datadir}/openvibes/rules/hardening-linux-l1.key
 
 %changelog
 * Mon Sep 28 2026 itismelime <26064407+itismelime@users.noreply.github.com> - %{rule_version}-1

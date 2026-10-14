@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Builds openvibes-rules-baseline (noarch) from baseline/ into OUT_DIR and
-# checks it: rpmlint without errors, exactly the four files (baseline and
-# alarm rule sets, with their keys), the licence and NOTICE, and two directories. The version is the signed envelope's rule set version.
+# checks it: rpmlint without errors, exactly the six rule files (baseline,
+# alarm and hardening L1 rule sets, with their keys), the licence and NOTICE,
+# and two directories. The version is the signed envelope's rule set version.
 # Usage: build-rpm.sh OUT_DIR   (Fedora: rpm-build rpmlint jq)
 set -euo pipefail
 [[ $# == 1 ]] || { echo "usage: $0 OUT_DIR" >&2; exit 2; }
@@ -13,6 +14,7 @@ rpmbuild -bb --quiet \
     --define "_topdir $root/target/rpm" \
     --define "_sourcedir $root/baseline" \
     --define "alarms_dir $root/alarms" \
+    --define "hardening_dir $root/hardening" \
     --define "license_dir $root" \
     --define "rule_version $version" \
     "$root/openvibes-rules-baseline.spec"
@@ -27,7 +29,9 @@ want='/usr/share/licenses/openvibes-rules-baseline/LICENSE
 /usr/share/openvibes/rules/alarms.json
 /usr/share/openvibes/rules/alarms.key
 /usr/share/openvibes/rules/baseline.json
-/usr/share/openvibes/rules/baseline.key'
+/usr/share/openvibes/rules/baseline.key
+/usr/share/openvibes/rules/hardening-linux-l1.json
+/usr/share/openvibes/rules/hardening-linux-l1.key'
 got=$(rpm -qlp "$rpm")
 [[ $got == "$want" ]] || { printf 'build-rpm: unexpected files:\n%s\n' "$got" >&2; exit 1; }
 echo "build-rpm: $(basename "$rpm")"
