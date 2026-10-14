@@ -43,6 +43,9 @@ jobs:
           cargo clippy --locked --all-targets -- -D warnings
           cargo test --locked
 
+      - name: Release script waits for CI
+        run: bash scripts/test-release-wait-ci.sh
+
       - name: The signing key is the released one
         run: |
           # Setup trusts the key the RPM ships, so a PR must not swap it (with
