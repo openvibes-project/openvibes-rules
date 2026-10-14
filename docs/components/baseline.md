@@ -16,7 +16,8 @@ carries its MITRE ATT&CK tactic/technique pairs in `attack` (protocol P18).
   730 days valid when signed, payload = the exact bytes of `rules.json`.
 - `baseline/baseline.key`: `baseline openvibes-1 PUBLIC_KEY`.
 - RPM `openvibes-rules-baseline` (noarch, Version = envelope version) installs
-  the last two to `/usr/share/openvibes/rules/` (0644). openvibes-admin Setup
+  three envelope and key pairs to `/usr/share/openvibes/rules/` (0644):
+  `baseline`, `alarms` and `hardening-linux-l1`. openvibes-admin Setup
   step 11 and Repair read exactly these paths: `rules trust add` with the key
   line, then `rules publish` of the envelope; the local agent gets the same key.
 
