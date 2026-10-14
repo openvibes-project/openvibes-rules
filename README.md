@@ -29,10 +29,10 @@ baseline v3 (42 rules), alarms v2 (6 rules).
 | `alarms/alarms.key` | the alarm rules' trust line (same key, scoped to `baseline-alarms`) |
 | `tests/alarm-cases.json` | events and the expected outcome per alarm rule |
 | `alarms-checker/` | `alarms-check`, run by CI on every change |
-| `hardening/linux-l1/rules.json` | Linux level 1 hardening rules (`hardening-linux-l1`, P19), not signed yet |
+| `hardening/linux-l1/rules.json` | Linux level 1 hardening rules (`hardening-linux-l1`, P19), signed (`hardening-linux-l1.json` and `.key` beside it), shipped in the RPM |
 | `tests/hardening-l1-cases.json` | facts and the expected outcome per hardening rule |
 | `hardening.allowlist` | facts the hardening rules may read (P19 catalog) |
-| `hardening-checker/` | `hardening-check`: `rules-check`'s source against the hardening agent pin (not in CI yet) |
+| `hardening-checker/` | `hardening-check`: `rules-check`'s source against the hardening agent pin (checked in CI and at release) |
 | `openvibes-rules-baseline.spec` | the noarch RPM |
 
 The rules are signed offline by the maintainer with `openvibes-admin rules

@@ -46,6 +46,12 @@ jobs:
               git diff --quiet "$prev" "$GITHUB_SHA" -- alarms/alarms.key ||
                 { echo "alarms/alarms.key differs from $prev"; exit 1; }
             fi
+            # The hardening L1 key ships in the same RPM (since v5); guard it
+            # once the previous release had it.
+            if git cat-file -e "$prev:hardening/linux-l1/hardening-linux-l1.key" 2>/dev/null; then
+              git diff --quiet "$prev" "$GITHUB_SHA" -- hardening/linux-l1/hardening-linux-l1.key ||
+                { echo "hardening/linux-l1/hardening-linux-l1.key differs from $prev"; exit 1; }
+            fi
           fi
 
       - name: The tag is the envelope version
@@ -64,6 +70,12 @@ jobs:
       - name: Check the alarm rules (the signed envelope too)
         run: >-
           cargo run --locked -p alarms-check -- --dir alarms --cases tests/alarm-cases.json
+
+      - name: Check the hardening rules (the signed envelope too)
+        run: >-
+          cargo run --locked -p hardening-check -- --dir hardening/linux-l1
+          --cases tests/hardening-l1-cases.json --allowlist hardening.allowlist
+          --set hardening-linux-l1
 
       - name: Build the RPM
         run: bash scripts/build-rpm.sh dist
