@@ -17,7 +17,10 @@ that healthy hosts almost never make:
 | `alarm.openvibes.test` | the harmless `openvibes-test alarm` runs (severity info; a pipeline test, see platform spec `2026-10-09-test-triggers-design.md`) |
 
 Every rule but the test carries its MITRE ATT&CK tactic/technique pairs in
-`attack` (protocol P18).
+`attack` (protocol P18). Every rule also carries `explain` (what a match
+means) and `check` (what to look at next), plain sentences of at most 600
+characters each that the console shows on an alarm's page. Agents ignore
+both, so changing the text keeps the rule's `version`.
 
 ## Interfaces
 

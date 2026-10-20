@@ -41,6 +41,10 @@ By submitting a contribution, you agree that it is licensed under the project's
   `alarms-check` refuses anything the agent would.
 - Every rule needs `match` and `no_match` cases in `tests/alarm-cases.json`,
   including the near misses it is designed to ignore.
+- Every rule carries `explain` (what a match means) and `check` (what to
+  look at next): short plain sentences, at most 600 characters each. Like
+  `attack`, they do not change what a rule matches, so it keeps its
+  `version`.
 
 ## AI-Assisted Contributions
 
