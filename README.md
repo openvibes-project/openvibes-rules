@@ -7,15 +7,21 @@ Linux host: services listening beyond loopback that are usually meant to stay
 local (Docker API, Redis, databases, kubelet, etcd, Ollama, Kafka, RDP, WinRM,
 NFS, X11, telnet, …) and insecure server packages (NIS, TFTP, xinetd, talk,
 telnet and rsh servers), matched by both Fedora/RHEL and Debian/Ubuntu package
-names. The alarm rules raise threat alarms from process starts. Every rule
-except the two test rules carries its MITRE ATT&CK techniques (`attack`); the
-two info-level test rules fire on `openvibes-test` (agent 0.2.6), so a host
-can be checked end to end.
+names. The alarm rules raise threat alarms from process starts, each with an
+`explain` and a `check` text that the console's alarm page shows. The Linux
+level 1 hardening rules check sshd, sysctls, file modes, mounts, services,
+accounts, audit and login settings from the agent's hardening facts. Every
+rule except the two test rules carries its MITRE ATT&CK techniques
+(`attack`); the two info-level test rules fire on `openvibes-test` (agent
+0.2.6), so a host can be checked end to end.
 
-A fresh OpenVIBES platform installs it as the RPM `openvibes-rules-baseline`;
-Setup trusts its key and publishes it, a newer package publishes itself on
-upgrade (platform 0.2.6), and every enrolled agent evaluates it. Version 3:
-baseline v3 (42 rules), alarms v2 (6 rules).
+A fresh OpenVIBES platform installs all three sets as the RPM
+`openvibes-rules-baseline`; Setup trusts their key and publishes them, a
+newer package publishes itself on upgrade (platform 0.2.6), and every
+enrolled agent evaluates the baseline and alarms. Hardening runs on the
+host groups it is switched on for in the console (platform 0.3.0).
+Version 6: baseline (42 rules), baseline-alarms (6 rules) and
+hardening-linux-l1 (43 rules), all signed at v6.
 
 | Path | What |
 |---|---|
