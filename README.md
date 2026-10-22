@@ -1,6 +1,18 @@
-# openvibes-rules
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/openvibes-project/openvibes-agent/main/docs/brand/openvibes-wordmark-dark.svg">
+    <img src="https://raw.githubusercontent.com/openvibes-project/openvibes-agent/main/docs/brand/openvibes-wordmark-light.svg" alt="OpenVIBES" width="560">
+  </picture>
+</p>
 
-Signed baseline rule sets for OpenVIBES agents.
+<h3 align="center">OpenVIBES Rules</h3>
+
+<p align="center">
+  The project's signed rule sets for OpenVIBES agents: baseline, threat
+  alarms and Linux hardening.
+</p>
+
+---
 
 The baseline is a small, quiet set of rules that flags risky exposure on a
 Linux host: services listening beyond loopback that are usually meant to stay
