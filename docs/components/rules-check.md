@@ -28,7 +28,13 @@ failure and exits 1 (2 for bad arguments). Checks:
    `alarm.openvibes.test`) carries 1 to 16 distinct, well-formed ATT&CK
    pairs in `attack` (protocol P18; `checker/src/attack.rs`, shared by both
    checkers). The pinned agent ignores the field, so this is the only check
-   on it.
+   on it. Each pair must also exist in ATT&CK 19.2, the release the
+   platform console bundles: a live tactic, and a live (not revoked, not
+   deprecated) technique that belongs to that tactic. The IDs are the checked-in
+   copy `checker/data/attack-ids.json`, never fetched at check time. To
+   refresh it, rebuild the platform's `attack-enterprise.json` with its
+   `scripts/attack-data.py`, then reduce it with
+   `jq -c '{version, tactics: [.tactics[].id], techniques: (.techniques | map({(.id): .tactics}) | add)}'`.
 
 `--sources-only` runs 1, 4, 5 and 6, for work before the maintainer signs. CI
 passes `--previous-version` from the latest `v*` tag: the tag's number when
