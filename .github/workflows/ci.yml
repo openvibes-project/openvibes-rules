@@ -14,14 +14,52 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Docs-only changes (every file *.md) skip the build and test jobs; code
+  # changes run everything as before. Pushes to main work the same way; a
+  # manual run runs everything. Skipped jobs count as passing for required
+  # checks.
+  changes:
+    name: Choose test tiers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      docs: ${{ steps.pick.outputs.docs }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Pick tiers
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          bash scripts/test-ci-docs.sh
+          # A manual run, or a diff that cannot be made, lists nothing: everything runs.
+          case "$EVENT" in
+            pull_request) changed=$(git diff --no-renames --name-only "$BASE_SHA...$HEAD_SHA" 2>/dev/null || true) ;;
+            push) changed=$(git diff --no-renames --name-only "$BEFORE_SHA" "$PUSH_SHA" 2>/dev/null || true) ;;
+            *) changed= ;;
+          esac
+          bash scripts/ci-docs.sh <<<"$changed" | tee -a "$GITHUB_OUTPUT"
+
   checks:
     name: Rule checks
+    needs: changes
+    if: needs.changes.outputs.docs != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -91,6 +129,8 @@ jobs:
 
   rpm:
     name: RPM (fedora:44)
+    needs: changes
+    if: needs.changes.outputs.docs != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container: registry.fedoraproject.org/fedora:44
