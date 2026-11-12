@@ -1,109 +1,58 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/openvibes-project/openvibes-agent/main/docs/brand/openvibes-wordmark-dark.svg">
-    <img src="https://raw.githubusercontent.com/openvibes-project/openvibes-agent/main/docs/brand/openvibes-wordmark-light.svg" alt="OpenVIBES" width="560">
+    <img src="https://raw.githubusercontent.com/openvibes-project/openvibes-agent/main/docs/brand/openvibes-wordmark-light.svg" alt="OpenVIBES" width="520">
   </picture>
 </p>
 
 <h3 align="center">OpenVIBES Rules</h3>
 
 <p align="center">
-  The project's signed rule sets for OpenVIBES agents: baseline, threat
-  alarms and Linux hardening.
+  The signed rule sets that every <a href="https://github.com/openvibes-project">OpenVIBES</a> agent runs out of the box.
 </p>
 
----
+## The rule sets
 
-The baseline is a small, quiet set of rules that flags risky exposure on a
-Linux host: services listening beyond loopback that are usually meant to stay
-local (Docker API, Redis, databases, kubelet, etcd, Ollama, Kafka, RDP, WinRM,
-NFS, X11, telnet, …) and insecure server packages (NIS, TFTP, xinetd, talk,
-telnet and rsh servers), matched by both Fedora/RHEL and Debian/Ubuntu package
-names. The alarm rules raise threat alarms from process starts, each with an
-`explain` and a `check` text that the console's alarm page shows. The Linux
-level 1 hardening rules check sshd, sysctls, file modes, mounts, services,
-accounts, audit and login settings from the agent's hardening facts. Every
-rule except the two test rules carries its MITRE ATT&CK techniques
-(`attack`); the two info-level test rules fire on `openvibes-test` (agent
-0.2.6), so a host can be checked end to end.
+| Set | Rules | What it checks |
+|---|---|---|
+| `baseline` | 42 | Risky exposure on a Linux host: services listening beyond the host that should stay local (Docker API, Redis, databases, etcd, RDP, telnet, …) and insecure server packages (NIS, TFTP, rsh, …). |
+| `baseline-alarms` | 6 | Threat alarms from program starts, each with a plain explanation and what to check. |
+| `hardening-linux-l1` | 43 | Linux hardening, level 1: sshd, kernel settings, file permissions, mounts, services, accounts, audit and login settings. |
 
-A fresh OpenVIBES platform installs all three sets as the RPM
-`openvibes-rules-baseline`; Setup trusts their key and publishes them, a
-newer package publishes itself on upgrade (platform 0.2.6), and every
-enrolled agent evaluates the baseline and alarms. Hardening runs on the
-host groups it is switched on for in the console (platform 0.3.0).
-Version 6: baseline (42 rules), baseline-alarms (6 rules) and
-hardening-linux-l1 (43 rules), all signed at v6.
+Every rule names the MITRE ATT&CK techniques it covers, except two harmless
+test rules that fire on `openvibes-test`, so you can check a host end to end.
 
-| Path | What |
-|---|---|
-| `baseline/rules.json` | the rule set (schema 1), one rule per line |
-| `baseline/baseline.json` | the signed envelope over the exact bytes of `rules.json` |
-| `baseline/baseline.key` | `baseline openvibes-1 PUBLIC_KEY`, the trust line |
-| `tests/cases.json` | facts and the expected outcome per rule |
-| `facts.allowlist` | facts the oldest supported agent collects |
-| `checker/` | `rules-check`, run by CI on every change |
-| `alarms/rules.json` | the baseline alarm rules (`process_event`, rule set `baseline-alarms`) |
-| `alarms/alarms.key` | the alarm rules' trust line (same key, scoped to `baseline-alarms`) |
-| `tests/alarm-cases.json` | events and the expected outcome per alarm rule |
-| `alarms-checker/` | `alarms-check`, run by CI on every change |
-| `hardening/linux-l1/rules.json` | Linux level 1 hardening rules (`hardening-linux-l1`, P19), signed (`hardening-linux-l1.json` and `.key` beside it), shipped in the RPM |
-| `tests/hardening-l1-cases.json` | facts and the expected outcome per hardening rule |
-| `hardening.allowlist` | facts the hardening rules may read (P19 catalog) |
-| `hardening-checker/` | `hardening-check`: `rules-check`'s source against the hardening agent pin (checked in CI and at release) |
-| `openvibes-rules-baseline.spec` | the noarch RPM |
+## How they reach your hosts
 
-The rules are signed offline by the maintainer with `openvibes-admin rules
-sign`; CI never holds the signing key. Design: openvibes-platform
-`docs/specs/2026-09-28-baseline-rules-design.md`. Components:
-[`docs/components/`](docs/components/README.md).
+You don't install anything from here. The platform comes with these sets
+as the package `openvibes-rules-baseline`: Setup publishes them, and a
+newer package publishes itself when the platform upgrades. Every enrolled
+agent then runs the baseline and the alarms. Hardening runs on every Linux
+host by default; turn it off for all hosts or per host group in the console.
 
-## Checking locally
+The rules are signed offline by the maintainer; CI never holds the signing
+key, and agents refuse anything that isn't signed by a key they trust.
+
+## Check locally
 
 ```sh
 cargo test --locked
 cargo run --locked -p rules-check -- --dir baseline --cases tests/cases.json \
-    --allowlist facts.allowlist            # add --sources-only before signing
+    --allowlist facts.allowlist
 ```
 
-## Releasing (maintainer)
+Where everything is and how a release is made:
+[`docs/maintaining.md`](docs/maintaining.md). One page per rule set and
+checker: [`docs/components/`](docs/components/README.md).
 
-One command, from an up-to-date `main`:
+## Contributing
 
-```sh
-bash scripts/release.sh
-```
+Issues and pull requests are welcome; see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Security problems: please use private vulnerability reporting, not a public
+issue.
 
-It checks every rule set, asks once to release the next version (vN), asks
-for the signing key's passphrase, and signs **every** rule set at vN
-(baseline, alarms, and any set whose trust line exists). Then it checks the
-signed envelopes, opens the pull request, merges it when CI is green, and
-tags vN. The release workflow builds, signs and publishes the RPM and tells
-the package repository to rebuild. If it stops partway (CI failed, Ctrl-C),
-run it again: it continues the open `release-vN` pull request without
-signing again.
+**AI disclosure:** OpenVIBES is built with the help of AI coding tools
+(Claude Code and Codex). Every change goes through a pull request and the
+full CI before it is merged.
 
-At a terminal gpg asks for the passphrase, up to three times. The signing key stays offline and encrypted: `release.sh` decrypts it into
-`$XDG_RUNTIME_DIR` (memory, only you can read it) for the signing alone and
-removes it straight after, also on an error. It never reaches git, GitHub or
-CI. By default it uses the one file matching
-`/run/media/$USER/*/openvibes/openvibes-rules.key.gpg` (the stick);
-`OPENVIBES_RULES_KEY=path` names another. To encrypt a plain key once (then
-remove the plain copy):
-
-```sh
-gpg --symmetric --cipher-algo AES256 --no-symkey-cache \
-    -o /run/media/$USER/STICK/openvibes/openvibes-rules.key.gpg \
-    /run/media/$USER/STICK/openvibes/openvibes-rules.key
-```
-
-`bash tests/release-test.sh` tests the script with a throwaway key, a local
-repository and a fake `gh`.
-
-Release again (same rules are fine) before the envelopes have less than a
-year left; CI refuses an envelope with less than 365 days.
-
-The RPM version, the release tag and every envelope's `rule_set_version` are
-the same number, so any change, alarm-only included, is one release.
-
-Apache-2.0 licensed. Contributions: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Licensed under the [Apache License 2.0](LICENSE).
